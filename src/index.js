@@ -1,36 +1,60 @@
-import * as PIXI from "pixi.js"
-import "./assets/styles/index.scss"
+import * as PIXI from "pixi.js";
+import "./assets/styles/index.scss";
 
 const App = PIXI.Application,
-    Sprite = PIXI.Sprite,
-    Texture = PIXI.Texture,
-    Container = PIXI.Container
+	Sprite = PIXI.Sprite,
+	Texture = PIXI.Texture,
+	Container = PIXI.Container;
 
-let app = new App({width: 450, height: 800,background: 0x227DAE})
+let app = new App({ width: 450, height: 800, background: 0x227dae });
 
-document.body.appendChild(app.view)
+document.body.appendChild(app.view);
 
-app.renderer.view.style.background = 0x227DAE;
-app.renderer.view.style.position = "absolute";
-app.renderer.view.style.display = "block";
+const gameContainer = new Container();
+gameContainer.x = 0;
+gameContainer.y = 0;
 
+app.stage.addChild(gameContainer);
 
+let sprite = PIXI.Sprite.from("./assets/images/bg-sheet0.png");
+gameContainer.addChild(sprite);
+let bubble = PIXI.Texture.from("./assets/images/bubble-sheet0.png");
+let bubbleSprite = new Sprite(bubble);
+let scale = 0.8
+bubbleSprite.x = 100;
+bubbleSprite.y = app.screen.height + 100;
+bubbleSprite.interactive = true
+bubbleSprite.anchor.set(0.5)
+bubbleSprite.scale.set(scale);
+let elapsed = 0.0
+let count = 0
+app.ticker.add((delta) => {
+    elapsed += delta
+    if (bubbleSprite.y <= -bubbleSprite.height) {
+        bubbleSprite.y = app.screen.height + 100;
+        bubbleSprite.renderable = false
+        elapsed = 0.0;
+    }
+    bubbleSprite.scale.x = scale + Math.sin((Math.PI * elapsed) / 70.0) / 20;
+    bubbleSprite.scale.y = scale - Math.sin((Math.PI * elapsed) / 70.0) / 20;
+    bubbleSprite.y -= 1.5
+})
 
+bubbleSprite.on("pointerdown", onBubbleClick)
 
-let sprite = PIXI.Sprite.from("./assets/images/bg-sheet0.png")
-app.stage.addChild(sprite)
-let header = PIXI.Texture.from("./assets/images/header-sheet0.png")
-let headerSprite = new Sprite(header)
-header.x= 0
-header.y = 0
-app.stage.addChild(headerSprite)
+gameContainer.addChild(bubbleSprite);
+
+function onBubbleClick() {
+    scale = 0.5
+}
+
 // let elapsed = 0.0
 // app.ticker.add((delta) => {
 
 //     elapsed += delta
 //     sprite.x = 100.0 + Math.tan(elapsed / 100.0) * 100.0
 //     sprite.y = 100.0 + Math.sin(elapsed / 10.0) * 200.0;
-    
+
 // })
 
 // const container = new PIXI.Container()
