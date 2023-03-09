@@ -17,9 +17,9 @@ gameContainer.y = 0;
 app.stage.addChild(gameContainer);
 const bubbles = []
 
-let sprite = Sprite.from("./assets/images/bg-sheet0.png");
+let sprite = Sprite.from("./static/images/bg-sheet0.png");
 gameContainer.addChild(sprite);
-let bubbleTexture = PIXI.Texture.from("./assets/images/bubble-sheet0.png");
+let bubbleTexture = PIXI.Texture.from("./static/images/bubble-sheet0.png");
 let bubblesContainer = new Container()
 bubblesContainer.width = bubbleTexture.width
 bubblesContainer.height = bubbleTexture.height

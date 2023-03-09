@@ -23,7 +23,7 @@ const build = {
 		}),
 
 		new CopyPlugin({
-			patterns: [{ from: "static", to: "", noErrorOnMissing: true }],
+			patterns: [{ from: "./static", to: "static", noErrorOnMissing: true }],
 		}),
 	],
 	performance: {
