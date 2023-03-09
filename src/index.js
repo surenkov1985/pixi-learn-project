@@ -15,37 +15,72 @@ gameContainer.x = 0;
 gameContainer.y = 0;
 
 app.stage.addChild(gameContainer);
+const bubbles = []
 
-let sprite = PIXI.Sprite.from("./assets/images/bg-sheet0.png");
+let sprite = Sprite.from("./assets/images/bg-sheet0.png");
 gameContainer.addChild(sprite);
-let bubble = PIXI.Texture.from("./assets/images/bubble-sheet0.png");
-let bubbleSprite = new Sprite(bubble);
+let bubbleTexture = PIXI.Texture.from("./assets/images/bubble-sheet0.png");
+let bubblesContainer = new Container()
+bubblesContainer.width = bubbleTexture.width
+bubblesContainer.height = bubbleTexture.height
+
+for (let i = 0; i < 30; i++) {
+    const bubble = new Sprite(bubbleTexture)
+    bubble.anchor.set(0.5)
+    bubble.scale.set(0.2 + Math.random() * 0.2)
+
+    bubble.x = (Math.random() - 0.5) * 30
+    bubble.y = (Math.random() - 0.5) * 30
+    bubble.direction = i + (Math.random() - 0.5) * Math.PI
+    bubble.speed = 2.5 + (Math.random() * 0.3)
+    bubbles.push(bubble)
+    bubblesContainer.addChild(bubble)
+    console.log(bubble.speed);
+}
+
+let bubbleSprite = new Sprite(bubbleTexture);
 let scale = 0.8
 bubbleSprite.x = 100;
 bubbleSprite.y = app.screen.height + 100;
+// bubbleSprite.y = 100;
 bubbleSprite.interactive = true
 bubbleSprite.anchor.set(0.5)
 bubbleSprite.scale.set(scale);
 let elapsed = 0.0
 let count = 0
+let isBurst = false
 app.ticker.add((delta) => {
+    if (isBurst){
+    for (let i = 0; i < bubbles.length; i ++) {
+        const bubble = bubbles[i]
+
+        bubble.x += Math.sin(bubble.direction) * bubble.speed
+        bubble.y += Math.cos(bubble.direction) * bubble.speed;
+        bubble.alpha -= 0.02
+    }}
     elapsed += delta
     if (bubbleSprite.y <= -bubbleSprite.height) {
         bubbleSprite.y = app.screen.height + 100;
-        bubbleSprite.renderable = false
+        // bubbleSprite.renderable = false
         elapsed = 0.0;
     }
+    if (bubbleSprite.texture == bubbleTexture) {
     bubbleSprite.scale.x = scale + Math.sin((Math.PI * elapsed) / 70.0) / 20;
     bubbleSprite.scale.y = scale - Math.sin((Math.PI * elapsed) / 70.0) / 20;
     bubbleSprite.y -= 1.5
+}
 })
 
+console.log(bubblesContainer);
 bubbleSprite.on("pointerdown", onBubbleClick)
 
 gameContainer.addChild(bubbleSprite);
 
 function onBubbleClick() {
-    scale = 0.5
+    console.log(this.texture === bubbleTexture);
+    this.texture = null
+    isBurst = true
+    this.addChild(bubblesContainer)
 }
 
 // let elapsed = 0.0
