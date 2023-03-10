@@ -40,21 +40,26 @@ const bubbleTexture = Texture.from("./static/images/bubble-sheet0.png");
 const heartTexture = Texture.from("./static/images/heart-sheet0.png");
 const bombTexture = Texture.from("./static/images/bomb-sheet0.png");
 
-const textures = [bubbleTexture, heartTexture, bombTexture];
+const textures = [
+	{ texture: bubbleTexture, prop: "isBubble" },
+	{ texture: heartTexture, prop: "isHeart" },
+	{ texture: bombTexture, prop: "isBomb" },
+];
 
 function createBubbleAt(x = 0, y = 0) {
-	const ind = random(0, textures.length);
-	const bubble = new Sprite(textures[ind]);
+	const ind = random(0, textures.length - 1);
+    const texture = textures[ind];
+	const bubble = new Sprite(texture.texture);
 	bubble.anchor.set(0.5);
-	bubble.initSpeed = random(0, 1);
-	// bubble.initScale = 0.8;
-    bubble.initScale = randomFloat(0.6, 0.8)
+	bubble.initSpeed = random(2, 3.5);
+	bubble.initScale = randomFloat(0.6, 0.8);
 	bubble.scale.set(bubble.initScale);
 	bubble.elapsed = 0;
 	bubble.addRubberScale = 0;
 	bubble.interactive = true;
 	bubble.x = x;
 	bubble.y = y;
+	bubble.prop = texture.prop;
 	bubble.on("pointerdown", onBubbleClick);
 
 	bubblesContainer.addChild(bubble);
@@ -81,19 +86,19 @@ function createParticlesAt(x = 0, y = 0) {
 
 function onBubbleClick(e) {
 	createParticlesAt(this.x, this.y);
-    if (this.texture === heartTexture) {
-        lives = lives === 5 ? lives : lives + 1
-        score ++
-    }
-    if (this.texture === bombTexture) {
-        lives --
-    }
-    if (this.texture === bubbleTexture) {
-        score ++
-    }
+	if (this.prop === "isHeart") {
+		lives = lives === 5 ? lives : lives + 1;
+		score++;
+	}
+	if (this.prop === "isBomb") {
+		lives--;
+	}
+	if (this.prop === "isBubble") {
+		score++;
+	}
 
-    console.log("score: " + score, "lives:" + lives);
-    
+	console.log("score: " + score, "lives:" + lives);
+
 	this.destroy();
 }
 
@@ -102,17 +107,22 @@ function spawnBubble() {
 	const y = app.screen.height + 100;
 
 	createBubbleAt(x, y);
-
-	setTimeout(() => {
-		spawnBubble();
-	}, 2500);
 }
 
-spawnBubble();
+const SPAN_BUBBLE_DELAY = 500;
+let curSpawnBubbleDelay = 0;
 
 app.ticker.add((delta) => {
 	if (!delta) return;
-    if (lives <= 0) return
+	if (lives <= 0) return;
+
+	curSpawnBubbleDelay -= delta * 10;
+
+	if (curSpawnBubbleDelay < 0) {
+		curSpawnBubbleDelay = SPAN_BUBBLE_DELAY;
+
+		spawnBubble();
+	}
 
 	for (let i = bubblesContainer.children.length - 1; i >= 0; i--) {
 		let bubble = bubblesContainer.children[i];
@@ -124,13 +134,13 @@ app.ticker.add((delta) => {
 			bubble.scale.x = bubble.initScale + bubble.addRubberScale;
 			bubble.scale.y = bubble.initScale - bubble.addRubberScale;
 
-			if (bubble.y <= -bubble.height / 2 ) {
-                console.log(bubble.texture != bombTexture);
-                if (bubble.texture != bombTexture) {
-                    lives --
-                }
+			if (bubble.y <= -bubble.height / 2) {
+				console.log(bubble.texture != bombTexture);
+				if (bubble.prop !== "isBomb") {
+					lives--;
+				}
+				console.log("score: " + score, "lives:" + lives, bubble.x, bubble);
 				bubble.destroy();
-                console.log("score: " + score, "lives:" + lives);
 			}
 		}
 	}
