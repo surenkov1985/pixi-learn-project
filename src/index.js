@@ -4,10 +4,13 @@ import "./assets/styles/index.scss";
 const App = PIXI.Application,
 	Sprite = PIXI.Sprite,
 	Texture = PIXI.Texture,
-	Container = PIXI.Container;
+	Container = PIXI.Container,
+	Text = PIXI.Text,
+	TextStyle = PIXI.TextStyle;
 
 let score = 0;
-let lives = 5;
+let lives = 3;
+let isBombCheck = false
 
 let app = new App({ width: 450, height: 800, background: 0x227dae });
 
@@ -35,6 +38,41 @@ gameContainer.addChild(bubblesContainer);
 // контейнер для партиклей от взрыва пузырей
 const particlesContainer = new Container();
 gameContainer.addChild(particlesContainer);
+// контейнер для хедера
+const headerContainer = new Container();
+gameContainer.addChild(headerContainer);
+
+// хедер
+const headerSprite = Sprite.from("./static/images/header-sheet0.png");
+const heartUiTexture = Sprite.from("./static/images/heart2-sheet0.png");
+const heartsContainer = new Container();
+headerSprite.width = app.screen.width;
+headerSprite.height = 90;
+headerContainer.addChild(headerSprite);
+
+heartUiTexture.scale.set(0.9);
+heartUiTexture.x = app.screen.width / 2;
+heartUiTexture.y = 35;
+heartUiTexture.anchor.set(0.5);
+
+headerContainer.addChild(heartUiTexture);
+headerContainer.addChild(heartsContainer)
+
+// текст
+const textStyle = new TextStyle({
+	fontFamily: "Arial",
+	fontSize: 26,
+	fontWeight: 900,
+	fill: 0xffffff,
+});
+
+let UIText = new Text(``, textStyle);
+UIText.x = 15;
+UIText.y = 20;
+UIText.scoreText = "SCORE : ";
+UIText.value = 0;
+UIText.text = UIText.scoreText + UIText.value;
+headerContainer.addChild(UIText);
 
 const bubbleTexture = Texture.from("./static/images/bubble-sheet0.png");
 const heartTexture = Texture.from("./static/images/heart-sheet0.png");
@@ -46,9 +84,51 @@ const textures = [
 	{ texture: bombTexture, prop: "isBomb" },
 ];
 
+createLifesAt(lives);
+
+function createLifesAt(lifeValue) {
+	let posX = heartUiTexture.x + 40;
+	let posY = heartUiTexture.y;
+	const dist = 32;
+    
+	if (!heartsContainer.children.length) {
+
+		for (let i = 0; i < lifeValue; i++) {
+			const life = new Sprite(bubbleTexture);
+            life.alpha = 1
+            life.elapsed = 0
+			life.anchor.set(0.5);
+			life.scale.set(0.15);
+			life.x = posX;
+			life.y = posY;
+			heartsContainer.addChild(life);
+			posX += dist;
+		}
+		
+	} else if (heartsContainer.children.length > lifeValue) {
+        
+        for (let i = heartsContainer.children.length - 1; i >= lifeValue; i--) {
+            let heart = heartsContainer.children[i]
+            heart.destroy()
+        }
+		
+	} else if (heartsContainer.children.length < lifeValue) {
+        
+        const life = new Sprite(bubbleTexture);
+		posX += dist * heartsContainer.children.length;
+        life.alpha = 1;
+        life.elapsed = 0
+		life.anchor.set(0.5);
+		life.scale.set(0.15);
+		life.x = posX;
+		life.y = posY;
+		heartsContainer.addChild(life);
+	}
+}
+
 function createBubbleAt(x = 0, y = 0) {
 	const ind = random(0, textures.length - 1);
-    const texture = textures[ind];
+	const texture = textures[ind];
 	const bubble = new Sprite(texture.texture);
 	bubble.anchor.set(0.5);
 	bubble.initSpeed = random(2, 3.5);
@@ -87,16 +167,21 @@ function createParticlesAt(x = 0, y = 0) {
 function onBubbleClick(e) {
 	createParticlesAt(this.x, this.y);
 	if (this.prop === "isHeart") {
-		lives = lives === 5 ? lives : lives + 1;
+		lives = lives === 3 ? lives : lives + 1;
 		score++;
+        createLifesAt(lives);
 	}
 	if (this.prop === "isBomb") {
 		lives--;
+        // isBombCheck = true
+		createLifesAt(lives)
+        
 	}
 	if (this.prop === "isBubble") {
 		score++;
 	}
 
+	UIText.text = UIText.scoreText + score;
 	console.log("score: " + score, "lives:" + lives);
 
 	this.destroy();
@@ -111,6 +196,7 @@ function spawnBubble() {
 
 const SPAN_BUBBLE_DELAY = 500;
 let curSpawnBubbleDelay = 0;
+let curBlinkLifeDelay = 500;
 
 app.ticker.add((delta) => {
 	if (!delta) return;
@@ -124,6 +210,32 @@ app.ticker.add((delta) => {
 		spawnBubble();
 	}
 
+    
+        // for (let i = heartsContainer.children.length - 1; i >= 0; i--) {
+		// 	let heart = heartsContainer.children[i];
+        //     if (isBombCheck) {
+                // heart.elapsed += delta;
+                // console.log(heart.elapsed);
+				// if (i >= lives) {
+				// 	heart.destroy();
+				// }
+				// curBlinkLifeDelay -= delta * 10;
+				// if (curBlinkLifeDelay < 0) {
+				// 	isBombCheck = false;
+				// 	heart.alpha = 1;
+				// 	curBlinkLifeDelay = SPAN_BUBBLE_DELAY;
+				// 	heart.elapsed = 0;
+				// } else {
+				// 	heart.alpha = 1 + Math.sin((Math.PI * heart.elapsed) / 10.0) * 100;
+				// }
+            // }
+
+			
+
+			// heart.alpha = 1 + Math.sin((Math.PI * heart.elapsed) / 10.0) * 100;
+		// }
+    
+
 	for (let i = bubblesContainer.children.length - 1; i >= 0; i--) {
 		let bubble = bubblesContainer.children[i];
 
@@ -135,11 +247,10 @@ app.ticker.add((delta) => {
 			bubble.scale.y = bubble.initScale - bubble.addRubberScale;
 
 			if (bubble.y <= -bubble.height / 2) {
-				console.log(bubble.texture != bombTexture);
 				if (bubble.prop !== "isBomb") {
 					lives--;
+                    createLifesAt(lives);
 				}
-				console.log("score: " + score, "lives:" + lives, bubble.x, bubble);
 				bubble.destroy();
 			}
 		}
