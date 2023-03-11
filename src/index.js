@@ -1,5 +1,6 @@
 import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
+import {Graphics} from "pixi.js";
 
 // ++++++++++++++++++++ MATH
 function random(min, max) {
@@ -30,7 +31,7 @@ const heartUiTexture = Texture.from("./static/images/heart2-sheet0.png");
 const bubbleTexture = Texture.from("./static/images/bubble-sheet0.png");
 const heartTexture = Texture.from("./static/images/heart-sheet0.png");
 const bombTexture = Texture.from("./static/images/bomb-sheet0.png");
-const pauseBtntexture = Texture.from("./static/images/pausebtn-sheet0.png");
+const pauseBtnTexture = Texture.from("./static/images/pausebtn-sheet0.png");
 const pausePopupTexture = Texture.from("./static/images/popup-sheet1.png");
 const gameOverPopupTexture = Texture.from("./static/images/popup-sheet0.png");
 const exitBtnTexture = Texture.from("./static/images/exitbtn-sheet0.png");
@@ -67,9 +68,9 @@ gameContainer.addChild(particlesContainer);
 const headerContainer = new Container();
 gameContainer.addChild(headerContainer);
 // контейнер для попапа
-const popupContainer = new Container();
-popupContainer.visible = false;
-gameContainer.addChild(popupContainer);
+const pauseContainer = new Container();
+pauseContainer.visible = false;
+gameContainer.addChild(pauseContainer);
 
 // //////////////////////////////////////////////////////////////////////// ФОН
 const bg = new Sprite(bgTexture);
@@ -109,7 +110,7 @@ UIText.y = 20;
 headerContainer.addChild(UIText);
 
 // кнопка паузы
-let pauseBtn = new Sprite(pauseBtntexture);
+let pauseBtn = new Sprite(pauseBtnTexture);
 pauseBtn.anchor.set(0.5);
 pauseBtn.scale.set(0.85);
 pauseBtn.interactive = true;
@@ -121,8 +122,8 @@ headerContainer.addChild(pauseBtn);
 
 function onPauseToggle() {
 	isPaused = !isPaused;
-	popupContainer.visible = isPaused;
-	pauseBtn.interactive = !isPaused;
+	pauseContainer.visible = isPaused;
+	// pauseBtn.interactive = !isPaused;
 }
 
 function updateUILives() {
@@ -302,34 +303,65 @@ app.ticker.add((delta) => {
 	}
 });
 
-// //////////////////////////////////////////////////////////////////////// POPUP
+// //////////////////////////////////////////////////////////////////////// PAUSE
+// это не попап, это панель паузы. Многие панельки в геймдеве выглядят, как попапы
+// чтобы не называть их все попапами, лучше использовать более узкие названия
 
-// попап
-const popup = new Sprite(pausePopupTexture);
-popup.anchor.set(0.5);
-popup.scale.set(0.85);
-popup.x = app.screen.width / 2;
-popup.y = app.screen.height / 2;
-popupContainer.addChild(popup);
+// я обычно использую шейдинги под панелями, у которых interactive = true
+// таким образом клик не проходит на нижележащие интерактивные объекты,
+// пока не скроется этот шейдинг.
+// Шейдинг можно сделать невидимым и при этом интерактивным, выставив alpha = 0
+const pauseShading = new Graphics();
+pauseShading.beginFill(0x000000, 0.6);
+pauseShading.drawRect(-1000, -1000, 2000, 2000);
+pauseShading.endFill();
+// pauseShading.alpha = 0;
+pauseShading.interactive = true;
+pauseShading.x = app.screen.width / 2;
+pauseShading.y = app.screen.height / 2;
+pauseContainer.addChild(pauseShading);
+
+// фон панельки паузы
+const pauseBg = new Sprite(pausePopupTexture);
+pauseBg.anchor.set(0.5);
+pauseBg.scale.set(0.85);
+pauseBg.x = app.screen.width / 2;
+pauseBg.y = app.screen.height / 2;
+pauseContainer.addChild(pauseBg);
 
 // кнопка play
-const playBtn = new Sprite(playBtnTexture);
-playBtn.anchor.set(0.5);
-playBtn.scale.set(0.85);
-playBtn.interactive = true;
-playBtn.x = 356;
-playBtn.y = 526;
-playBtn.on("pointerdown", onPauseToggle);
-popupContainer.addChild(playBtn);
+// в другом месте может быть ещё одна кнопка плей, лучше добавить имя панели
+// к которой принадлежит эта, учитывая, что у нас тут всё глобальное
+const pausePlayBtn = new Sprite(playBtnTexture);
+pausePlayBtn.anchor.set(0.5);
+pausePlayBtn.scale.set(0.85);
+pausePlayBtn.interactive = true;
+pausePlayBtn.x = 356;
+pausePlayBtn.y = 526;
+pausePlayBtn.on("pointerdown", onPauseToggle);
+pauseContainer.addChild(pausePlayBtn);
 
 // кнопка выхода
-const exitbtn = new Sprite(exitBtnTexture);
-exitbtn.anchor.set(0.5);
-exitbtn.scale.set(0.85);
-exitbtn.interactive = true;
-exitbtn.x = 94;
-exitbtn.y = 526;
-popupContainer.addChild(exitbtn);
+const exitBtn = new Sprite(exitBtnTexture);
+exitBtn.anchor.set(0.5);
+exitBtn.scale.set(0.85);
+exitBtn.interactive = true;
+exitBtn.x = 94;
+exitBtn.y = 526;
+pauseContainer.addChild(exitBtn);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // mainCode /////////////////////////////////////////////////////////////////////////////////////////////
 
