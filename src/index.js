@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
-import {Graphics} from "pixi.js";
+import { Graphics } from "pixi.js";
 
 // ++++++++++++++++++++ MATH
 function random(min, max) {
@@ -36,6 +36,7 @@ const pausePopupTexture = Texture.from("./static/images/popup-sheet1.png");
 const gameOverPopupTexture = Texture.from("./static/images/popup-sheet0.png");
 const exitBtnTexture = Texture.from("./static/images/exitbtn-sheet0.png");
 const playBtnTexture = Texture.from("./static/images/playbtn-sheet0.png");
+const menuBgTexture = Texture.from("./static/images/menubg-sheet0.png");
 
 // ////////////////////////////////////////////////////////////////////////
 // тут можно задать какие то глобальные переменные и константы
@@ -46,6 +47,7 @@ let lives = MAX_LIVES;
 // в данном случае можно заюзать переменную isGameOver, указывающу, что жизни кончились
 // и наступил гейм овер
 let isGameOver = false;
+let isGamePlay = false
 let isPaused = false;
 
 // //////////////////////////////////////////////////////////////////////// ГЛАВНЫЕ КОНТЕЙНЕРЫ
@@ -71,6 +73,9 @@ gameContainer.addChild(headerContainer);
 const pauseContainer = new Container();
 pauseContainer.visible = false;
 gameContainer.addChild(pauseContainer);
+// контейнер для главного меню
+const menuContainer = new Container();
+gameContainer.addChild(menuContainer);
 
 // //////////////////////////////////////////////////////////////////////// ФОН
 const bg = new Sprite(bgTexture);
@@ -259,45 +264,47 @@ app.ticker.add((delta) => {
 	if (isGameOver) return;
 	if (isPaused) return;
 
-	curSpawnBubbleDelay -= delta * 10;
+	if (isGamePlay) {
+		curSpawnBubbleDelay -= delta * 10;
 
-	if (curSpawnBubbleDelay < 0) {
-		curSpawnBubbleDelay = SPAN_BUBBLE_DELAY;
+		if (curSpawnBubbleDelay < 0) {
+			curSpawnBubbleDelay = SPAN_BUBBLE_DELAY;
 
-		spawnBubble();
-	}
+			spawnBubble();
+		}
 
-	for (let i = bubblesContainer.children.length - 1; i >= 0; i--) {
-		let bubble = bubblesContainer.children[i];
+		for (let i = bubblesContainer.children.length - 1; i >= 0; i--) {
+			let bubble = bubblesContainer.children[i];
 
-		if (bubble) {
-			bubble.y -= bubble.initSpeed * delta;
-			bubble.elapsed += delta;
-			bubble.addRubberScale = Math.sin((Math.PI * bubble.elapsed) / 70.0) / 20;
-			bubble.scale.x = bubble.initScale + bubble.addRubberScale;
-			bubble.scale.y = bubble.initScale - bubble.addRubberScale;
+			if (bubble) {
+				bubble.y -= bubble.initSpeed * delta;
+				bubble.elapsed += delta;
+				bubble.addRubberScale = Math.sin((Math.PI * bubble.elapsed) / 70.0) / 20;
+				bubble.scale.x = bubble.initScale + bubble.addRubberScale;
+				bubble.scale.y = bubble.initScale - bubble.addRubberScale;
 
-			if (bubble.y <= -bubble.height / 2) {
-				if (bubble.prop !== "isBomb") {
-					lives--;
+				if (bubble.y <= -bubble.height / 2) {
+					if (bubble.prop !== "isBomb") {
+						lives--;
 
-					manageLives();
+						manageLives();
+					}
+					bubble.destroy();
 				}
-				bubble.destroy();
 			}
 		}
-	}
 
-	for (let i = particlesContainer.children.length - 1; i >= 0; i--) {
-		let particle = particlesContainer.children[i];
+		for (let i = particlesContainer.children.length - 1; i >= 0; i--) {
+			let particle = particlesContainer.children[i];
 
-		if (particle) {
-			particle.x += Math.cos(particle.direction) * particle.speed * delta;
-			particle.y += Math.sin(particle.direction) * particle.speed * delta;
-			particle.alpha -= 0.05 * delta;
+			if (particle) {
+				particle.x += Math.cos(particle.direction) * particle.speed * delta;
+				particle.y += Math.sin(particle.direction) * particle.speed * delta;
+				particle.alpha -= 0.05 * delta;
 
-			if (particle.alpha <= 0) {
-				particle.destroy();
+				if (particle.alpha <= 0) {
+					particle.destroy();
+				}
 			}
 		}
 	}
@@ -348,19 +355,49 @@ exitBtn.scale.set(0.85);
 exitBtn.interactive = true;
 exitBtn.x = 94;
 exitBtn.y = 526;
+exitBtn.on("pointerdown", ShowMenu)
 pauseContainer.addChild(exitBtn);
 
+// /////////////////////////////////////////// МЕНЮ
 
+//  фон меню
+const menuBg = new Sprite(menuBgTexture);
+menuBg.width = app.screen.width
+menuBg.height = app.screen.height;
+menuContainer.addChild(menuBg);
 
+// кнопка play в меню
+const menuPlayBtn = new Sprite(playBtnTexture)
+menuPlayBtn.anchor.set(0.5)
+menuPlayBtn.scale.set(2.1)
+menuPlayBtn.interactive = true
+menuPlayBtn.x = app.screen.width / 2
+menuPlayBtn.y = app.screen.height / 2 + 10;
+menuPlayBtn.on("pointerdown", startGamePlay)
+menuContainer.addChild(menuPlayBtn)
 
+function startGamePlay () {
+	hideMenu()
+}
 
+function ShowMenu() {
+	menuContainer.visible = true;
+	isGamePlay = false;
+	isPaused = false
+	pauseContainer.visible = false
+	score = 0
+	lives = MAX_LIVES
 
+	for (let i = bubblesContainer.children.length - 1; i >= 0 ; i--) {
+		let bubble = bubblesContainer.children[i]
+		bubble.destroy()
+	}
+}
 
-
-
-
-
-
+function hideMenu() {
+	menuContainer.visible = false;
+	isGamePlay = true;
+} 
 
 
 // mainCode /////////////////////////////////////////////////////////////////////////////////////////////
