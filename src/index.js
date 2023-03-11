@@ -2,8 +2,12 @@ import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
 
 // ++++++++++++++++++++ MATH
-function random(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-function randomFloat(min, max) { return Math.random() * (max - min) + min; }
+function random(min, max) {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function randomFloat(min, max) {
+	return Math.random() * (max - min) + min;
+}
 // ++++++++++++++++++++
 
 // инициализируем приложение
@@ -41,7 +45,7 @@ let lives = MAX_LIVES;
 // в данном случае можно заюзать переменную isGameOver, указывающу, что жизни кончились
 // и наступил гейм овер
 let isGameOver = false;
-let isPaused = false
+let isPaused = false;
 
 // //////////////////////////////////////////////////////////////////////// ГЛАВНЫЕ КОНТЕЙНЕРЫ
 // тут мы обособляем создание основных верхних контейнеров в нужном порядке,
@@ -63,9 +67,9 @@ gameContainer.addChild(particlesContainer);
 const headerContainer = new Container();
 gameContainer.addChild(headerContainer);
 // контейнер для попапа
-const popupContainer = new Container()
-popupContainer.visible = false
-gameContainer.addChild(popupContainer)
+const popupContainer = new Container();
+popupContainer.visible = false;
+gameContainer.addChild(popupContainer);
 
 // //////////////////////////////////////////////////////////////////////// ФОН
 const bg = new Sprite(bgTexture);
@@ -73,7 +77,7 @@ bgContainer.addChild(bg);
 
 // //////////////////////////////////////////////////////////////////////// HEADER
 
-const headerBg = new Sprite(headerBgTexture);	
+const headerBg = new Sprite(headerBgTexture);
 headerBg.width = app.screen.width;
 headerBg.height = 90;
 headerContainer.addChild(headerBg);
@@ -85,7 +89,7 @@ heartUiSprite.x = app.screen.width / 2;
 heartUiSprite.y = 35;
 headerContainer.addChild(heartUiSprite);
 
-const heartsContainer = new Container();	
+const heartsContainer = new Container();
 headerContainer.addChild(heartsContainer);
 
 // текст
@@ -105,19 +109,20 @@ UIText.y = 20;
 headerContainer.addChild(UIText);
 
 // кнопка паузы
-let pauseBtn = new Sprite(pauseBtntexture)
-pauseBtn.anchor.set(0.5)
-pauseBtn.scale.set(0.85)
-pauseBtn.interactive = true
-pauseBtn.x = 395
-pauseBtn.y = 75
-pauseBtn.on("pointerdown", onPauseToggle)
+let pauseBtn = new Sprite(pauseBtntexture);
+pauseBtn.anchor.set(0.5);
+pauseBtn.scale.set(0.85);
+pauseBtn.interactive = true;
+pauseBtn.x = 395;
+pauseBtn.y = 75;
+pauseBtn.on("pointerdown", onPauseToggle);
 
-headerContainer.addChild(pauseBtn)
+headerContainer.addChild(pauseBtn);
 
 function onPauseToggle() {
-	isPaused = !isPaused
-	popupContainer.visible = isPaused
+	isPaused = !isPaused;
+	popupContainer.visible = isPaused;
+	pauseBtn.interactive = !isPaused;
 }
 
 function updateUILives() {
@@ -134,7 +139,6 @@ function updateUILives() {
 	};
 	// создаем иконки жизней, если их недостаточно или они вообще ещё не созданы.
 	if (heartsContainer.children.length < lives) {
-
 		while (heartsContainer.children.length < lives) {
 			const life = createLife();
 
@@ -147,7 +151,7 @@ function updateUILives() {
 
 	for (let i = 0; i < heartsContainer.children.length; i++) {
 		const life = heartsContainer.children[i];
-		
+
 		life.visible = lives > i;
 	}
 }
@@ -212,7 +216,7 @@ function createParticlesAt(x = 0, y = 0) {
 
 function onBubbleClick(e) {
 	if (isGameOver) return;
-	if (isPaused) return
+	if (isPaused) return;
 
 	createParticlesAt(this.x, this.y);
 
@@ -247,7 +251,6 @@ function spawnBubble() {
 const SPAN_BUBBLE_DELAY = 500;
 let curSpawnBubbleDelay = 0;
 let curBlinkLifeDelay = 500;
-
 
 // //////////////////////////////////////////////////////////////////////// UPDATE
 app.ticker.add((delta) => {
@@ -302,22 +305,22 @@ app.ticker.add((delta) => {
 // //////////////////////////////////////////////////////////////////////// POPUP
 
 // попап
-const popup = new Sprite(pausePopupTexture)
-popup.anchor.set(0.5)
-popup.scale.set(0.85)
-popup.x = app.screen.width / 2
-popup.y = app.screen.height / 2
-popupContainer.addChild(popup)
+const popup = new Sprite(pausePopupTexture);
+popup.anchor.set(0.5);
+popup.scale.set(0.85);
+popup.x = app.screen.width / 2;
+popup.y = app.screen.height / 2;
+popupContainer.addChild(popup);
 
 // кнопка play
-const playBtn = new Sprite(playBtnTexture)
-playBtn.anchor.set(0.5)
-playBtn.scale.set(0.85)
-playBtn.interactive = true
-playBtn.x = 356
-playBtn.y = 526
-playBtn.on("pointerdown", onPauseToggle)
-popupContainer.addChild(playBtn)
+const playBtn = new Sprite(playBtnTexture);
+playBtn.anchor.set(0.5);
+playBtn.scale.set(0.85);
+playBtn.interactive = true;
+playBtn.x = 356;
+playBtn.y = 526;
+playBtn.on("pointerdown", onPauseToggle);
+popupContainer.addChild(playBtn);
 
 // кнопка выхода
 const exitbtn = new Sprite(exitBtnTexture);
