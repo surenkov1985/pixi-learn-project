@@ -23,8 +23,7 @@ let app = new App({ width: 450, height: 800, background: 0x227dae });
 document.body.appendChild(app.view);
 
 // //////////////////////////////////////////////////////////////////////// АССЕТЫ (картинки, звуки, шрифты)
-// обособляем загрузку всего контента
-// (правда в данный момент он ещё не грузится, как надо, с прогрессбаром, а подгружается налету)
+
 const bgTexture = Texture.from("./static/images/bg-sheet0.png");
 const headerBgTexture = Texture.from("./static/images/header-sheet0.png");
 const heartUiTexture = Texture.from("./static/images/heart2-sheet0.png");
@@ -39,20 +38,15 @@ const playBtnTexture = Texture.from("./static/images/playbtn-sheet0.png");
 const menuBgTexture = Texture.from("./static/images/menubg-sheet0.png");
 
 // ////////////////////////////////////////////////////////////////////////
-// тут можно задать какие то глобальные переменные и константы
 let score = 0;
 const MAX_LIVES = 3;
 let lives = MAX_LIVES;
-// лучше использовать глобальные переменные для определения завершения игры или единый state параметр.
-// в данном случае можно заюзать переменную isGameOver, указывающу, что жизни кончились
-// и наступил гейм овер
+
 let isGameOver = false;
-let isGameplay = false
+let isGameplay = false;
 let isPaused = false;
 
 // //////////////////////////////////////////////////////////////////////// ГЛАВНЫЕ КОНТЕЙНЕРЫ
-// тут мы обособляем создание основных верхних контейнеров в нужном порядке,
-// чтобы фон был снизу, пузыри под интерфейсом и т.д.
 
 // основной конейнер для всей игры
 const gameContainer = new Container();
@@ -69,15 +63,19 @@ gameContainer.addChild(particlesContainer);
 // контейнер для хедера
 const headerContainer = new Container();
 gameContainer.addChild(headerContainer);
-// контейнер для попапа
+// контейнер для паузы
 const pauseContainer = new Container();
 // pauseContainer.visible = false;
 gameContainer.addChild(pauseContainer);
+// контейнер для гейм овера
+const gameOverContainer = new Container();
+gameContainer.addChild(gameOverContainer);
 // контейнер для главного меню
 const menuContainer = new Container();
 gameContainer.addChild(menuContainer);
 
 // //////////////////////////////////////////////////////////////////////// GAMEPLAY
+
 // //////////////////////////////////////////////////////////////////////// ФОН
 const bg = new Sprite(bgTexture);
 bgContainer.addChild(bg);
@@ -126,13 +124,7 @@ pauseBtn.on("pointerdown", handlerGameplayPause);
 headerContainer.addChild(pauseBtn);
 
 function handlerGameplayPause() {
-	// isPaused = !isPaused;
-
-	// добавил функции по всключения/выключению панели паузы, потому что
-	// там может быть дополнительный функционал (например, анимации)
-	// и это все может вызываться из разных мест
 	showPause();
-	// pauseBtn.interactive = !isPaused;
 }
 
 function updateUILives() {
@@ -169,7 +161,7 @@ function updateUILives() {
 function manageLives() {
 	if (lives <= 0) {
 		lives = 0;
-		isGameOver = true;
+		showGameOver();
 	} else if (lives > MAX_LIVES) {
 		lives = MAX_LIVES;
 	}
@@ -190,21 +182,22 @@ function startGameplay() {
 	resetGameplay();
 
 	isGameplay = true;
-	// isGameplay = false;
-	// isPaused = false
-	// pauseContainer.visible = false
-	// score = 0
-	// lives = MAX_LIVES
 }
 
 function resetGameplay() {
 	bubblesContainer.removeChildren();
+	particlesContainer.removeChildren();
 	score = 0;
 	lives = MAX_LIVES;
 
+	scoreUpdate();
 	manageLives();
 
 	isGameplay = false;
+}
+
+function scoreUpdate() {
+	UIText.text = UIText.scoreText + score;
 }
 
 function createBubbleAt(x = 0, y = 0) {
@@ -266,8 +259,7 @@ function onBubbleClick(e) {
 		score++;
 	}
 
-	UIText.text = UIText.scoreText + score;
-	console.log("score: " + score, "lives:" + lives);
+	scoreUpdate();
 
 	this.destroy();
 }
@@ -336,18 +328,11 @@ app.ticker.add((delta) => {
 });
 
 // /////////////////////////////////////////////////////////////////////////////////////////////////// PAUSE
-// это не попап, это панель паузы. Многие панельки в геймдеве выглядят, как попапы
-// чтобы не называть их все попапами, лучше использовать более узкие названия
 
-// я обычно использую шейдинги под панелями, у которых interactive = true
-// таким образом клик не проходит на нижележащие интерактивные объекты,
-// пока не скроется этот шейдинг.
-// Шейдинг можно сделать невидимым и при этом интерактивным, выставив alpha = 0
 const pauseShading = new Graphics();
 pauseShading.beginFill(0x000000, 0.6);
 pauseShading.drawRect(-1000, -1000, 2000, 2000);
 pauseShading.endFill();
-// pauseShading.alpha = 0;
 pauseShading.interactive = true;
 pauseShading.x = app.screen.width / 2;
 pauseShading.y = app.screen.height / 2;
@@ -362,8 +347,6 @@ pauseBg.y = app.screen.height / 2;
 pauseContainer.addChild(pauseBg);
 
 // кнопка play
-// в другом месте может быть ещё одна кнопка плей, лучше добавить имя панели
-// к которой принадлежит эта, учитывая, что у нас тут всё глобальное
 const pausePlayBtn = new Sprite(playBtnTexture);
 pausePlayBtn.anchor.set(0.5);
 pausePlayBtn.scale.set(0.85);
@@ -380,7 +363,7 @@ exitBtn.scale.set(0.85);
 exitBtn.interactive = true;
 exitBtn.x = 94;
 exitBtn.y = 526;
-exitBtn.on("pointerdown", handlerPauseHome)
+exitBtn.on("pointerdown", handlerPauseHome);
 pauseContainer.addChild(exitBtn);
 
 function handlerPauseResume() {
@@ -403,7 +386,68 @@ function hidePause() {
 	isPaused = false;
 }
 
+// ////////////////////////////////////////////////////////////////////////////////////// GAME OVER
+
+const gameOverShading = new Graphics();
+gameOverShading.beginFill(0x000000, 0.6);
+gameOverShading.drawRect(-1000, -1000, 2000, 2000);
+gameOverShading.endFill();
+gameOverShading.interactive = true;
+gameOverShading.x = app.screen.width / 2;
+gameOverShading.y = app.screen.height / 2;
+gameOverContainer.addChild(gameOverShading);
+
+//  фон панельки геймовера
+const gameOverBg = new Sprite(gameOverPopupTexture);
+gameOverBg.anchor.set(0.5);
+gameOverBg.scale.set(0.85);
+gameOverBg.x = app.screen.width / 2;
+gameOverBg.y = app.screen.height / 2;
+gameOverContainer.addChild(gameOverBg);
+
+// кнопка плей геймовера
+const gameOverPlayBtn = new Sprite(playBtnTexture);
+gameOverPlayBtn.anchor.set(0.5);
+gameOverPlayBtn.scale.set(0.85);
+gameOverPlayBtn.interactive = true;
+gameOverPlayBtn.x = 356;
+gameOverPlayBtn.y = 526;
+gameOverPlayBtn.on("pointerdown", newGameHandler);
+gameOverContainer.addChild(gameOverPlayBtn);
+
+// кнопка exit геймовера
+const gameOverExitBtn = new Sprite(exitBtnTexture);
+gameOverExitBtn.anchor.set(0.5);
+gameOverExitBtn.scale.set(0.85);
+gameOverExitBtn.interactive = true;
+gameOverExitBtn.x = 94;
+gameOverExitBtn.y = 526;
+gameOverExitBtn.on("pointerdown", exitGameHandler);
+gameOverContainer.addChild(gameOverExitBtn);
+
+function exitGameHandler() {
+	hideGameOver();
+	resetGameplay();
+	showMenu();
+}
+
+function newGameHandler() {
+	startGameplay();
+	hideGameOver();
+}
+
+function showGameOver() {
+	gameOverContainer.visible = true;
+	isGameOver = true;
+}
+
+function hideGameOver() {
+	gameOverContainer.visible = false;
+	isGameOver = false;
+}
+
 // ////////////////////////////////////////////////////////////////////////////////////// МЕНЮ
+
 //  фон меню
 const menuBg = new Sprite(menuBgTexture);
 menuBg.width = app.screen.width;
@@ -427,34 +471,14 @@ function handlerMenuPlay() {
 
 function showMenu() {
 	menuContainer.visible = true;
-	// выглядит, как подмешивание "левого" функционала. В принципе, в маленьких проектам
-	// так можно делать, но лучше стремиться отделять логику, потому что эти геймплейные вещи
-	// могут вызываться из разных мест, а не только при показе меню.
-	// isGameplay = false;
-	// isPaused = false
-	// pauseContainer.visible = false
-	// score = 0
-	// lives = MAX_LIVES
-
-	// for (let i = bubblesContainer.children.length - 1; i >= 0 ; i--) {
-	// 	let bubble = bubblesContainer.children[i]
-	// 	bubble.destroy()
-	// }
 }
 
 function hideMenu() {
 	menuContainer.visible = false;
-	// это подмешивание стороннего функционала в функцию, которая предназначена для другого.
-	// Лучше перенести включение геймплея в функцию startGamePlay, которая и должна отвечать
-	// за включение геймплея и обработку каких-нибудь стартовых параметров для геймплея/
-	// Например, нам надо будет запустить геймплей с панели очков, после смерти и тогда,
-	// чтобы сделать isGamePlay = true нам надо будет вызывать функцию hideMenu,
-	// что нелогично, ведь мы не в меню, а на панели очков
-	// isGamePlay = true;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////// START
 resetGameplay();
 hidePause();
-
+hideGameOver();
 showMenu();
