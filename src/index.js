@@ -1,6 +1,12 @@
 import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
 
+// ++++++++++++++++++++ MATH
+function random(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function randomFloat(min, max) { return Math.random() * (max - min) + min; }
+// ++++++++++++++++++++
+
+// инициализируем приложение
 const App = PIXI.Application,
 	Sprite = PIXI.Sprite,
 	Texture = PIXI.Texture,
@@ -8,30 +14,40 @@ const App = PIXI.Application,
 	Text = PIXI.Text,
 	TextStyle = PIXI.TextStyle;
 
-let score = 0;
-let lives = 3;
-let isBombCheck = false
-
 let app = new App({ width: 450, height: 800, background: 0x227dae });
-
 document.body.appendChild(app.view);
 
-// AlexCode
+// //////////////////////////////////////////////////////////////////////// АССЕТЫ (картинки, звуки, шрифты)
+// обособляем загрузку всего контента
+// (правда в данный момент он ещё не грузится, как надо, с прогрессбаром, а подгружается налету)
+const bgTexture = Texture.from("./static/images/bg-sheet0.png");
+const headerBgTexture = Texture.from("./static/images/header-sheet0.png");
+const heartUiTexture = Texture.from("./static/images/heart2-sheet0.png");
+const bubbleTexture = Texture.from("./static/images/bubble-sheet0.png");
+const heartTexture = Texture.from("./static/images/heart-sheet0.png");
+const bombTexture = Texture.from("./static/images/bomb-sheet0.png");
 
-function random(min, max) {
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-function randomFloat(min, max) {
-	return Math.random() * (max - min) + min;
-}
+// ////////////////////////////////////////////////////////////////////////
+// тут можно задать какие то глобальные переменные и константы
+let score = 0;
+const MAX_LIVES = 3;
+let lives = MAX_LIVES;
+// лучше использовать глобальные переменные для определения завершения игры или единый state параметр.
+// в данном случае можно заюзать переменную isGameOver, указывающу, что жизни кончились
+// и наступил гейм овер
+let isGameOver = false;
+let isBombCheck = false
 
+// //////////////////////////////////////////////////////////////////////// ГЛАВНЫЕ КОНТЕЙНЕРЫ
+// тут мы обособляем создание основных верхних контейнеров в нужном порядке,
+// чтобы фон был снизу, пузыри под интерфейсом и т.д.
+
+// основной конейнер для всей игры
 const gameContainer = new Container();
 app.stage.addChild(gameContainer);
-
-// фон
-const bg = Sprite.from("./static/images/bg-sheet0.png");
-gameContainer.addChild(bg);
-
+// контейнер для фона
+const bgContainer = new Container();
+gameContainer.addChild(bgContainer);
 // контейнер для пузырей
 const bubblesContainer = new Container();
 gameContainer.addChild(bubblesContainer);
@@ -42,21 +58,31 @@ gameContainer.addChild(particlesContainer);
 const headerContainer = new Container();
 gameContainer.addChild(headerContainer);
 
-// хедер
-const headerSprite = Sprite.from("./static/images/header-sheet0.png");
-const heartUiTexture = Sprite.from("./static/images/heart2-sheet0.png");
-const heartsContainer = new Container();
-headerSprite.width = app.screen.width;
-headerSprite.height = 90;
-headerContainer.addChild(headerSprite);
+// //////////////////////////////////////////////////////////////////////// ФОН
+const bg = new Sprite(bgTexture);
+bgContainer.addChild(bg);
 
-heartUiTexture.scale.set(0.9);
-heartUiTexture.x = app.screen.width / 2;
-heartUiTexture.y = 35;
-heartUiTexture.anchor.set(0.5);
+// //////////////////////////////////////////////////////////////////////// HEADER
+// обособляем GUI, чтобы оно не перемешивалось с игровым функционалом
+// можно представить, как если бы это был отдельный класс в отдельном файле
 
-headerContainer.addChild(heartUiTexture);
-headerContainer.addChild(heartsContainer)
+const headerBg = new Sprite(headerBgTexture);	// именуем переменные нормальными понятными именами
+headerBg.width = app.screen.width;
+headerBg.height = 90;
+headerContainer.addChild(headerBg);
+
+const heartUiSprite = new Sprite(heartUiTexture);
+// лучше такие параметры, как anchor, alpha, width, height располагать сразу после создания спрайта,
+// а scale, rotation и position или x, y - после, потому что позицию обычно нужно менять часто и активно
+// и визуально в итоге легче выцепить такие вещи где то внизу кода, чем в середине
+heartUiSprite.anchor.set(0.5);
+heartUiSprite.scale.set(0.9);
+heartUiSprite.x = app.screen.width / 2;
+heartUiSprite.y = 35;
+headerContainer.addChild(heartUiSprite);
+
+const heartsContainer = new Container();	// стараемся располагать связанные участки рядом друг с другом
+headerContainer.addChild(heartsContainer);
 
 // текст
 const textStyle = new TextStyle({
@@ -67,64 +93,131 @@ const textStyle = new TextStyle({
 });
 
 let UIText = new Text(``, textStyle);
-UIText.x = 15;
-UIText.y = 20;
 UIText.scoreText = "SCORE : ";
 UIText.value = 0;
 UIText.text = UIText.scoreText + UIText.value;
+UIText.x = 15;
+UIText.y = 20;
 headerContainer.addChild(UIText);
 
-const bubbleTexture = Texture.from("./static/images/bubble-sheet0.png");
-const heartTexture = Texture.from("./static/images/heart-sheet0.png");
-const bombTexture = Texture.from("./static/images/bomb-sheet0.png");
+// приставка At обычно указывает на то, что в параметрах функции будут позиции (x, y),
+// в которых будет создаваться что то внутри этой функции.
+// Поэтому в данном случае она не нужна.
+// Жизни во множественном числе пишутся, как lives
 
+// createLives(lives);
+
+// в этой функции есть повторяющийся код и логические оргехи, но самое главное -
+// не очень логично само назначение этой функции. Её имя говорит о том, что она что то создаеёт,
+// но в коде ниже, при клике на пузырь, ты делаешь lives-- и вызываешь createLives(lives),
+// что выглядит неправильно, поскольку мы как бы уменьшили жизни, причем тут create?
+// В общем, лучше делай функцию, которая обрабатывает сам параметр жизней,
+// проверяет его на выход за пределы min/max, определяет не закончилась ли игра
+// и запускает другую функцию, которая уже обрабатывает визуальные иконки.
+// Это добавляет гибкости.
+
+// function createLives(livesCount) {
+// 	let posX = heartUiSprite.x + 40;
+// 	let posY = heartUiSprite.y;
+// 	const dist = 32;
+//
+// 	if (!heartsContainer.children.length) {
+//
+// 		for (let i = 0; i < livesCount; i++) {
+// 			const life = new Sprite(bubbleTexture);
+// 			life.alpha = 1
+// 			life.elapsed = 0
+// 			life.anchor.set(0.5);
+// 			life.scale.set(0.15);
+// 			life.x = posX;
+// 			life.y = posY;
+// 			heartsContainer.addChild(life);
+// 			posX += dist;
+// 		}
+//
+// 	} else if (heartsContainer.children.length > livesCount) {
+//
+// 		for (let i = heartsContainer.children.length - 1; i >= livesCount; i--) {
+// 			let heart = heartsContainer.children[i]
+// 			heart.destroy()
+// 		}
+//
+// 	} else if (heartsContainer.children.length < livesCount) {
+//
+// 		const life = new Sprite(bubbleTexture);
+// 		posX += dist * heartsContainer.children.length;
+// 		life.alpha = 1;
+// 		life.elapsed = 0
+// 		life.anchor.set(0.5);
+// 		life.scale.set(0.15);
+// 		life.x = posX;
+// 		life.y = posY;
+// 		heartsContainer.addChild(life);
+// 	}
+// }
+
+function updateUILives() {
+	const initX = heartUiSprite.x + 40;
+	const initY = heartUiSprite.y;
+	const BETWEEN_X = 32;
+
+	const createLife = () => {
+		const life = new Sprite(bubbleTexture);
+		life.anchor.set(0.5);
+		life.scale.set(0.15);
+
+		return life;
+	};
+	// создаем иконки жизней, если их недостаточно или они вообще ещё не созданы.
+	// В нашем случае вместо < lives можно подставить < MAX_LIVES,
+	// потому что у нас не может быть больше жизней, чем установлено заранее,
+	// но это пример того, как можно сделать более гибкий код для игры, где максимальное кол-во жизней
+	// может меняться. Например, подобрали какой-нибудь супер-бонус, увеличивающий макс. жизни до 4,
+	// тогда нам нужно будет создать дополнительную иконку сердца.
+	if (heartsContainer.children.length < lives) {
+
+		while (heartsContainer.children.length < lives) {
+			const life = createLife();
+
+			life.x = initX + BETWEEN_X * heartsContainer.children.length;
+			life.y = initY;
+
+			heartsContainer.addChild(life);
+		}
+	}
+
+	// на самом деле, лучше не делать часто destroy(), потому что это приводет к работе очиститель мусора
+	// потому что destroy обнуляет контейнер. Работа гарбадж коллектора - это всегда плохо для игр,
+	// потому что создает фризы. Чтобы этого избежать, использую Pool объектов и просто их включат/выключат
+	// для рендера и апдейта.
+	// В данном случае, в отношении тконок сердечек, я их просто включаю/выключаю и не создаю/удаляю новые
+	for (let i = 0; i < heartsContainer.children.length; i++) {
+		const life = heartsContainer.children[i];
+		// выключаем (делаем иконку невидимой параметром visible = false),
+		// если её индекс в массиве детей больше, чем жизней
+		life.visible = lives > i;
+	}
+}
+
+function manageLives() {
+	if (lives <= 0) {
+		lives = 0;
+		isGameOver = true;
+	} else if (lives > MAX_LIVES) {
+		lives = MAX_LIVES;
+	}
+
+	updateUILives();
+}
+
+manageLives();
+
+// //////////////////////////////////////////////////////////////////////// GAMEPLAY
 const textures = [
 	{ texture: bubbleTexture, prop: "isBubble" },
 	{ texture: heartTexture, prop: "isHeart" },
 	{ texture: bombTexture, prop: "isBomb" },
 ];
-
-createLifesAt(lives);
-
-function createLifesAt(lifeValue) {
-	let posX = heartUiTexture.x + 40;
-	let posY = heartUiTexture.y;
-	const dist = 32;
-    
-	if (!heartsContainer.children.length) {
-
-		for (let i = 0; i < lifeValue; i++) {
-			const life = new Sprite(bubbleTexture);
-            life.alpha = 1
-            life.elapsed = 0
-			life.anchor.set(0.5);
-			life.scale.set(0.15);
-			life.x = posX;
-			life.y = posY;
-			heartsContainer.addChild(life);
-			posX += dist;
-		}
-		
-	} else if (heartsContainer.children.length > lifeValue) {
-        
-        for (let i = heartsContainer.children.length - 1; i >= lifeValue; i--) {
-            let heart = heartsContainer.children[i]
-            heart.destroy()
-        }
-		
-	} else if (heartsContainer.children.length < lifeValue) {
-        
-        const life = new Sprite(bubbleTexture);
-		posX += dist * heartsContainer.children.length;
-        life.alpha = 1;
-        life.elapsed = 0
-		life.anchor.set(0.5);
-		life.scale.set(0.15);
-		life.x = posX;
-		life.y = posY;
-		heartsContainer.addChild(life);
-	}
-}
 
 function createBubbleAt(x = 0, y = 0) {
 	const ind = random(0, textures.length - 1);
@@ -165,17 +258,24 @@ function createParticlesAt(x = 0, y = 0) {
 }
 
 function onBubbleClick(e) {
+	if (isGameOver) return;
+
 	createParticlesAt(this.x, this.y);
+
 	if (this.prop === "isHeart") {
-		lives = lives === 3 ? lives : lives + 1;
+		// lives = lives === 3 ? lives : lives + 1;
 		score++;
-        createLifesAt(lives);
+		lives++;
+
+        // createLives(lives);
+		manageLives();
 	}
 	if (this.prop === "isBomb") {
 		lives--;
         // isBombCheck = true
-		createLifesAt(lives)
-        
+
+		// createLives(lives);
+		manageLives();
 	}
 	if (this.prop === "isBubble") {
 		score++;
@@ -198,9 +298,10 @@ const SPAN_BUBBLE_DELAY = 500;
 let curSpawnBubbleDelay = 0;
 let curBlinkLifeDelay = 500;
 
+// //////////////////////////////////////////////////////////////////////// UPDATE
 app.ticker.add((delta) => {
 	if (!delta) return;
-	if (lives <= 0) return;
+	if (isGameOver) return;
 
 	curSpawnBubbleDelay -= delta * 10;
 
@@ -210,7 +311,7 @@ app.ticker.add((delta) => {
 		spawnBubble();
 	}
 
-    
+
         // for (let i = heartsContainer.children.length - 1; i >= 0; i--) {
 		// 	let heart = heartsContainer.children[i];
         //     if (isBombCheck) {
@@ -230,11 +331,11 @@ app.ticker.add((delta) => {
 				// }
             // }
 
-			
+
 
 			// heart.alpha = 1 + Math.sin((Math.PI * heart.elapsed) / 10.0) * 100;
 		// }
-    
+
 
 	for (let i = bubblesContainer.children.length - 1; i >= 0; i--) {
 		let bubble = bubblesContainer.children[i];
@@ -249,7 +350,9 @@ app.ticker.add((delta) => {
 			if (bubble.y <= -bubble.height / 2) {
 				if (bubble.prop !== "isBomb") {
 					lives--;
-                    createLifesAt(lives);
+
+                    // createLives(lives);
+					manageLives();
 				}
 				bubble.destroy();
 			}
