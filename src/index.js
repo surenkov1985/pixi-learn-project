@@ -9,6 +9,9 @@ function random(min, max) {
 function randomFloat(min, max) {
 	return Math.random() * (max - min) + min;
 }
+function sample(array) {
+	return array[Math.floor(Math.random() * array.length)];
+}
 // ++++++++++++++++++++
 
 // инициализируем приложение
@@ -41,6 +44,12 @@ const menuBgTexture = Texture.from("./static/images/menubg-sheet0.png");
 let score = 0;
 const MAX_LIVES = 3;
 let lives = MAX_LIVES;
+
+const BUBBLE_TYPES = {
+	'default': {texture: bubbleTexture},
+	'heart': {texture: heartTexture},
+	'bomb': {texture: bombTexture},
+}
 
 let isGameOver = false;
 let isGameplay = false;
@@ -176,11 +185,11 @@ function updateScore() {
 // manageLives();
 
 // ///////////////////////////////////////////////////
-const textures = [
-	{ texture: bubbleTexture, prop: "isBubble" },
-	{ texture: heartTexture, prop: "isHeart" },
-	{ texture: bombTexture, prop: "isBomb" },
-];
+// const textures = [
+// 	{ texture: bubbleTexture, prop: "isBubble" },
+// 	{ texture: heartTexture, prop: "isHeart" },
+// 	{ texture: bombTexture, prop: "isBomb" },
+// ];
 
 function startGameplay() {
 	resetGameplay();
@@ -189,8 +198,15 @@ function startGameplay() {
 }
 
 function resetGameplay() {
-	bubblesContainer.removeChildren();
-	particlesContainer.removeChildren();
+	// bubblesContainer.removeChildren();
+	// particlesContainer.removeChildren();
+	for (let i = 0; i < bubblesContainer.children.length; i++) {
+		bubblesContainer.children[i].disable();
+	}
+	for (let i = 0; i < particlesContainer.children.length; i++) {
+		particlesContainer.children[i].disable();
+	}
+
 	score = 0;
 	lives = MAX_LIVES;
 
@@ -200,41 +216,101 @@ function resetGameplay() {
 	isGameplay = false;
 }
 
-function createBubbleAt(x = 0, y = 0) {
-	const ind = random(0, textures.length - 1);
-	const texture = textures[ind];
-	const bubble = new Sprite(texture.texture);
+function createBubble(type = 'default') {
+	const texture = BUBBLE_TYPES[type] && BUBBLE_TYPES[type].texture;
+	const bubble = new Sprite(texture);
+
+	bubble.type = type;
 	bubble.anchor.set(0.5);
-	bubble.initSpeed = random(2, 3.5);
-	bubble.initScale = randomFloat(0.6, 0.8);
+	bubble.initSpeed = 5;
+	bubble.initScale = 1;
 	bubble.scale.set(bubble.initScale);
 	bubble.elapsed = 0;
 	bubble.addRubberScale = 0;
 	bubble.interactive = true;
-	bubble.x = x;
-	bubble.y = y;
-	bubble.prop = texture.prop;
+	bubble.active = false;
+
 	bubble.on("pointerdown", onBubbleClick);
 
 	bubblesContainer.addChild(bubble);
 
+	bubble.enable = function() {
+		this.active = true;
+		this.visible = true;
+		this.interactive = true;
+		this.elapsed = 0;
+		this.addRubberScale = 0;
+	}
+	bubble.disable = function() {
+		this.active = false;
+		this.visible = false;
+		this.interactive = false;
+	}
+
+	return bubble;
+}
+function createBubbleAt(x = 0, y = 0) {
+	const type = sample(['default', 'default', 'default', 'default', 'default', 'heart', 'bomb']);
+
+	const bubble = Pool.getBubble(type);
+	// const ind = random(0, textures.length - 1);
+	// const texture = textures[ind];
+	// const bubble = new Sprite(texture.texture);
+	// bubble.anchor.set(0.5);
+	bubble.initSpeed = random(2, 3.5);
+	bubble.initScale = randomFloat(0.6, 0.8);
+	bubble.scale.set(bubble.initScale);
+	// bubble.elapsed = 0;
+	// bubble.addRubberScale = 0;
+	// bubble.interactive = true;
+	bubble.x = x;
+	bubble.y = y;
+	// bubble.prop = texture.prop;
+	// bubble.on("pointerdown", onBubbleClick);
+
+	// bubblesContainer.addChild(bubble);
+
 	return bubble;
 }
 
+function createParticle(type = 'default') {
+	const particle = new Sprite(bubbleTexture);
+
+	particle.type = type;
+	particle.anchor.set(0.5);
+	particle.direction = 0;
+	particle.speed = 6;
+	particle.active = false;
+
+	particlesContainer.addChild(particle);
+
+	particle.enable = function() {
+		this.active = true;
+		this.visible = true;
+		this.alpha = 1;
+	}
+	particle.disable = function() {
+		this.active = false;
+		this.visible = false;
+	}
+
+	return particle;
+}
 function createParticlesAt(x = 0, y = 0) {
 	for (let i = 0; i < 10; i++) {
-		const particle = new Sprite(bubbleTexture);
-		particle.anchor.set(0.5);
+		const particle = Pool.getParticle('default');
+		// const particle = new Sprite(bubbleTexture);
+		// particle.anchor.set(0.5);
 		particle.scale.set(randomFloat(0.2, 0.4));
 		particle.direction = randomFloat(0, Math.PI * 2);
+		particle.speed = random(3, 5);
 		let randDist = random(0, 20);
 		particle.x = x + Math.cos(particle.direction) * randDist;
 		particle.y = y + Math.sin(particle.direction) * randDist;
-		particle.speed = random(3, 5);
-		particle.elapsed = 0;
-		particle.addRubberScale = 0;
-
-		particlesContainer.addChild(particle);
+		// particle.elapsed = 0;
+		// particle.addRubberScale = 0;
+		//
+		// particlesContainer.addChild(particle);
 	}
 }
 
@@ -244,24 +320,23 @@ function onBubbleClick(e) {
 
 	createParticlesAt(this.x, this.y);
 
-	if (this.prop === "isHeart") {
+	if (this.type === "heart") {
 		score++;
 		lives++;
 
 		manageLives();
-	}
-	if (this.prop === "isBomb") {
+	} else if (this.type === "bomb") {
 		lives--;
 
 		manageLives();
-	}
-	if (this.prop === "isBubble") {
+	} else {
 		score++;
 	}
 
 	updateScore();
 
-	this.destroy();
+	// this.destroy();
+	this.disable();
 }
 
 function spawnBubble() {
@@ -293,7 +368,7 @@ app.ticker.add((delta) => {
 		for (let i = bubblesContainer.children.length - 1; i >= 0; i--) {
 			let bubble = bubblesContainer.children[i];
 
-			if (bubble) {
+			if (bubble && bubble.active) {
 				bubble.y -= bubble.initSpeed * delta;
 				bubble.elapsed += delta;
 				bubble.addRubberScale = Math.sin((Math.PI * bubble.elapsed) / 70.0) / 20;
@@ -301,12 +376,13 @@ app.ticker.add((delta) => {
 				bubble.scale.y = bubble.initScale - bubble.addRubberScale;
 
 				if (bubble.y <= -bubble.height / 2) {
-					if (bubble.prop !== "isBomb") {
+					if (bubble.type !== "bomb") {
 						lives--;
 
 						manageLives();
 					}
-					bubble.destroy();
+					// bubble.destroy();
+					bubble.disable();
 				}
 			}
 		}
@@ -314,13 +390,14 @@ app.ticker.add((delta) => {
 		for (let i = particlesContainer.children.length - 1; i >= 0; i--) {
 			let particle = particlesContainer.children[i];
 
-			if (particle) {
+			if (particle && particle.active) {
 				particle.x += Math.cos(particle.direction) * particle.speed * delta;
 				particle.y += Math.sin(particle.direction) * particle.speed * delta;
 				particle.alpha -= 0.05 * delta;
 
 				if (particle.alpha <= 0) {
-					particle.destroy();
+					// particle.destroy();
+					particle.disable();
 				}
 			}
 		}
@@ -478,7 +555,60 @@ function hideMenu() {
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////// START
-resetGameplay();
+// resetGameplay();
 hidePause();
 hideGameOver();
 showMenu();
+
+
+// ////////////////////////////////////////// POOL
+const Pool = {
+
+	CACHE: {},
+
+	getBubble: function(type) {
+		const key = 'bubble_' + type;
+		return this.getFromCache(key, () => createBubble(type));
+	},
+
+	getParticle: function(type) {
+		const key = 'particle_' + type;
+		return this.getFromCache(key, () => createParticle(type));
+	},
+
+	getFromCache: function (key, createCallback) {
+
+		if (!this.CACHE[key]) this.CACHE[key] = [];
+
+		let stream = this.CACHE[key];
+
+		let i = 0;
+		let len = stream.length;
+		let item;
+
+		if (len === 0) {
+			stream[0] = createCallback(key);
+			item = stream[0];
+			item.enable();
+
+			return item;
+		}
+
+		while (i <= len) {
+			if (!stream[i]) {
+				stream[i] = createCallback(key);
+				item = stream[i];
+				item.enable();
+				break;
+			} else if (!stream[i].active) {
+				item = stream[i];
+				item.enable();
+				break;
+			} else {
+				i++;
+			}
+		}
+
+		return item;
+	}
+};
