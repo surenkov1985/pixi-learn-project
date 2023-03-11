@@ -26,6 +26,11 @@ const heartUiTexture = Texture.from("./static/images/heart2-sheet0.png");
 const bubbleTexture = Texture.from("./static/images/bubble-sheet0.png");
 const heartTexture = Texture.from("./static/images/heart-sheet0.png");
 const bombTexture = Texture.from("./static/images/bomb-sheet0.png");
+const pauseBtntexture = Texture.from("./static/images/pausebtn-sheet0.png");
+const pausePopupTexture = Texture.from("./static/images/popup-sheet1.png");
+const gameOverPopupTexture = Texture.from("./static/images/popup-sheet0.png");
+const exitBtnTexture = Texture.from("./static/images/exitbtn-sheet0.png");
+const playBtnTexture = Texture.from("./static/images/playbtn-sheet0.png");
 
 // ////////////////////////////////////////////////////////////////////////
 // тут можно задать какие то глобальные переменные и константы
@@ -36,7 +41,7 @@ let lives = MAX_LIVES;
 // в данном случае можно заюзать переменную isGameOver, указывающу, что жизни кончились
 // и наступил гейм овер
 let isGameOver = false;
-let isBombCheck = false
+let isPaused = false
 
 // //////////////////////////////////////////////////////////////////////// ГЛАВНЫЕ КОНТЕЙНЕРЫ
 // тут мы обособляем создание основных верхних контейнеров в нужном порядке,
@@ -57,31 +62,30 @@ gameContainer.addChild(particlesContainer);
 // контейнер для хедера
 const headerContainer = new Container();
 gameContainer.addChild(headerContainer);
+// контейнер для попапа
+const popupContainer = new Container()
+popupContainer.visible = false
+gameContainer.addChild(popupContainer)
 
 // //////////////////////////////////////////////////////////////////////// ФОН
 const bg = new Sprite(bgTexture);
 bgContainer.addChild(bg);
 
 // //////////////////////////////////////////////////////////////////////// HEADER
-// обособляем GUI, чтобы оно не перемешивалось с игровым функционалом
-// можно представить, как если бы это был отдельный класс в отдельном файле
 
-const headerBg = new Sprite(headerBgTexture);	// именуем переменные нормальными понятными именами
+const headerBg = new Sprite(headerBgTexture);	
 headerBg.width = app.screen.width;
 headerBg.height = 90;
 headerContainer.addChild(headerBg);
 
 const heartUiSprite = new Sprite(heartUiTexture);
-// лучше такие параметры, как anchor, alpha, width, height располагать сразу после создания спрайта,
-// а scale, rotation и position или x, y - после, потому что позицию обычно нужно менять часто и активно
-// и визуально в итоге легче выцепить такие вещи где то внизу кода, чем в середине
 heartUiSprite.anchor.set(0.5);
 heartUiSprite.scale.set(0.9);
 heartUiSprite.x = app.screen.width / 2;
 heartUiSprite.y = 35;
 headerContainer.addChild(heartUiSprite);
 
-const heartsContainer = new Container();	// стараемся располагать связанные участки рядом друг с другом
+const heartsContainer = new Container();	
 headerContainer.addChild(heartsContainer);
 
 // текст
@@ -100,61 +104,21 @@ UIText.x = 15;
 UIText.y = 20;
 headerContainer.addChild(UIText);
 
-// приставка At обычно указывает на то, что в параметрах функции будут позиции (x, y),
-// в которых будет создаваться что то внутри этой функции.
-// Поэтому в данном случае она не нужна.
-// Жизни во множественном числе пишутся, как lives
+// кнопка паузы
+let pauseBtn = new Sprite(pauseBtntexture)
+pauseBtn.anchor.set(0.5)
+pauseBtn.scale.set(0.85)
+pauseBtn.interactive = true
+pauseBtn.x = 395
+pauseBtn.y = 75
+pauseBtn.on("pointerdown", onPauseToggle)
 
-// createLives(lives);
+headerContainer.addChild(pauseBtn)
 
-// в этой функции есть повторяющийся код и логические оргехи, но самое главное -
-// не очень логично само назначение этой функции. Её имя говорит о том, что она что то создаеёт,
-// но в коде ниже, при клике на пузырь, ты делаешь lives-- и вызываешь createLives(lives),
-// что выглядит неправильно, поскольку мы как бы уменьшили жизни, причем тут create?
-// В общем, лучше делай функцию, которая обрабатывает сам параметр жизней,
-// проверяет его на выход за пределы min/max, определяет не закончилась ли игра
-// и запускает другую функцию, которая уже обрабатывает визуальные иконки.
-// Это добавляет гибкости.
-
-// function createLives(livesCount) {
-// 	let posX = heartUiSprite.x + 40;
-// 	let posY = heartUiSprite.y;
-// 	const dist = 32;
-//
-// 	if (!heartsContainer.children.length) {
-//
-// 		for (let i = 0; i < livesCount; i++) {
-// 			const life = new Sprite(bubbleTexture);
-// 			life.alpha = 1
-// 			life.elapsed = 0
-// 			life.anchor.set(0.5);
-// 			life.scale.set(0.15);
-// 			life.x = posX;
-// 			life.y = posY;
-// 			heartsContainer.addChild(life);
-// 			posX += dist;
-// 		}
-//
-// 	} else if (heartsContainer.children.length > livesCount) {
-//
-// 		for (let i = heartsContainer.children.length - 1; i >= livesCount; i--) {
-// 			let heart = heartsContainer.children[i]
-// 			heart.destroy()
-// 		}
-//
-// 	} else if (heartsContainer.children.length < livesCount) {
-//
-// 		const life = new Sprite(bubbleTexture);
-// 		posX += dist * heartsContainer.children.length;
-// 		life.alpha = 1;
-// 		life.elapsed = 0
-// 		life.anchor.set(0.5);
-// 		life.scale.set(0.15);
-// 		life.x = posX;
-// 		life.y = posY;
-// 		heartsContainer.addChild(life);
-// 	}
-// }
+function onPauseToggle() {
+	isPaused = !isPaused
+	popupContainer.visible = isPaused
+}
 
 function updateUILives() {
 	const initX = heartUiSprite.x + 40;
@@ -169,11 +133,6 @@ function updateUILives() {
 		return life;
 	};
 	// создаем иконки жизней, если их недостаточно или они вообще ещё не созданы.
-	// В нашем случае вместо < lives можно подставить < MAX_LIVES,
-	// потому что у нас не может быть больше жизней, чем установлено заранее,
-	// но это пример того, как можно сделать более гибкий код для игры, где максимальное кол-во жизней
-	// может меняться. Например, подобрали какой-нибудь супер-бонус, увеличивающий макс. жизни до 4,
-	// тогда нам нужно будет создать дополнительную иконку сердца.
 	if (heartsContainer.children.length < lives) {
 
 		while (heartsContainer.children.length < lives) {
@@ -186,15 +145,9 @@ function updateUILives() {
 		}
 	}
 
-	// на самом деле, лучше не делать часто destroy(), потому что это приводет к работе очиститель мусора
-	// потому что destroy обнуляет контейнер. Работа гарбадж коллектора - это всегда плохо для игр,
-	// потому что создает фризы. Чтобы этого избежать, использую Pool объектов и просто их включат/выключат
-	// для рендера и апдейта.
-	// В данном случае, в отношении тконок сердечек, я их просто включаю/выключаю и не создаю/удаляю новые
 	for (let i = 0; i < heartsContainer.children.length; i++) {
 		const life = heartsContainer.children[i];
-		// выключаем (делаем иконку невидимой параметром visible = false),
-		// если её индекс в массиве детей больше, чем жизней
+		
 		life.visible = lives > i;
 	}
 }
@@ -259,22 +212,19 @@ function createParticlesAt(x = 0, y = 0) {
 
 function onBubbleClick(e) {
 	if (isGameOver) return;
+	if (isPaused) return
 
 	createParticlesAt(this.x, this.y);
 
 	if (this.prop === "isHeart") {
-		// lives = lives === 3 ? lives : lives + 1;
 		score++;
 		lives++;
 
-        // createLives(lives);
 		manageLives();
 	}
 	if (this.prop === "isBomb") {
 		lives--;
-        // isBombCheck = true
 
-		// createLives(lives);
 		manageLives();
 	}
 	if (this.prop === "isBubble") {
@@ -298,10 +248,12 @@ const SPAN_BUBBLE_DELAY = 500;
 let curSpawnBubbleDelay = 0;
 let curBlinkLifeDelay = 500;
 
+
 // //////////////////////////////////////////////////////////////////////// UPDATE
 app.ticker.add((delta) => {
 	if (!delta) return;
 	if (isGameOver) return;
+	if (isPaused) return;
 
 	curSpawnBubbleDelay -= delta * 10;
 
@@ -310,32 +262,6 @@ app.ticker.add((delta) => {
 
 		spawnBubble();
 	}
-
-
-        // for (let i = heartsContainer.children.length - 1; i >= 0; i--) {
-		// 	let heart = heartsContainer.children[i];
-        //     if (isBombCheck) {
-                // heart.elapsed += delta;
-                // console.log(heart.elapsed);
-				// if (i >= lives) {
-				// 	heart.destroy();
-				// }
-				// curBlinkLifeDelay -= delta * 10;
-				// if (curBlinkLifeDelay < 0) {
-				// 	isBombCheck = false;
-				// 	heart.alpha = 1;
-				// 	curBlinkLifeDelay = SPAN_BUBBLE_DELAY;
-				// 	heart.elapsed = 0;
-				// } else {
-				// 	heart.alpha = 1 + Math.sin((Math.PI * heart.elapsed) / 10.0) * 100;
-				// }
-            // }
-
-
-
-			// heart.alpha = 1 + Math.sin((Math.PI * heart.elapsed) / 10.0) * 100;
-		// }
-
 
 	for (let i = bubblesContainer.children.length - 1; i >= 0; i--) {
 		let bubble = bubblesContainer.children[i];
@@ -351,7 +277,6 @@ app.ticker.add((delta) => {
 				if (bubble.prop !== "isBomb") {
 					lives--;
 
-                    // createLives(lives);
 					manageLives();
 				}
 				bubble.destroy();
@@ -373,6 +298,35 @@ app.ticker.add((delta) => {
 		}
 	}
 });
+
+// //////////////////////////////////////////////////////////////////////// POPUP
+
+// попап
+const popup = new Sprite(pausePopupTexture)
+popup.anchor.set(0.5)
+popup.scale.set(0.85)
+popup.x = app.screen.width / 2
+popup.y = app.screen.height / 2
+popupContainer.addChild(popup)
+
+// кнопка play
+const playBtn = new Sprite(playBtnTexture)
+playBtn.anchor.set(0.5)
+playBtn.scale.set(0.85)
+playBtn.interactive = true
+playBtn.x = 356
+playBtn.y = 526
+playBtn.on("pointerdown", onPauseToggle)
+popupContainer.addChild(playBtn)
+
+// кнопка выхода
+const exitbtn = new Sprite(exitBtnTexture);
+exitbtn.anchor.set(0.5);
+exitbtn.scale.set(0.85);
+exitbtn.interactive = true;
+exitbtn.x = 94;
+exitbtn.y = 526;
+popupContainer.addChild(exitbtn);
 
 // mainCode /////////////////////////////////////////////////////////////////////////////////////////////
 
