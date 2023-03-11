@@ -47,7 +47,7 @@ let lives = MAX_LIVES;
 // в данном случае можно заюзать переменную isGameOver, указывающу, что жизни кончились
 // и наступил гейм овер
 let isGameOver = false;
-let isGamePlay = false
+let isGameplay = false
 let isPaused = false;
 
 // //////////////////////////////////////////////////////////////////////// ГЛАВНЫЕ КОНТЕЙНЕРЫ
@@ -71,18 +71,18 @@ const headerContainer = new Container();
 gameContainer.addChild(headerContainer);
 // контейнер для попапа
 const pauseContainer = new Container();
-pauseContainer.visible = false;
+// pauseContainer.visible = false;
 gameContainer.addChild(pauseContainer);
 // контейнер для главного меню
 const menuContainer = new Container();
 gameContainer.addChild(menuContainer);
 
+// //////////////////////////////////////////////////////////////////////// GAMEPLAY
 // //////////////////////////////////////////////////////////////////////// ФОН
 const bg = new Sprite(bgTexture);
 bgContainer.addChild(bg);
 
 // //////////////////////////////////////////////////////////////////////// HEADER
-
 const headerBg = new Sprite(headerBgTexture);
 headerBg.width = app.screen.width;
 headerBg.height = 90;
@@ -121,13 +121,17 @@ pauseBtn.scale.set(0.85);
 pauseBtn.interactive = true;
 pauseBtn.x = 395;
 pauseBtn.y = 75;
-pauseBtn.on("pointerdown", onPauseToggle);
+pauseBtn.on("pointerdown", handlerGameplayPause);
 
 headerContainer.addChild(pauseBtn);
 
-function onPauseToggle() {
-	isPaused = !isPaused;
-	pauseContainer.visible = isPaused;
+function handlerGameplayPause() {
+	// isPaused = !isPaused;
+
+	// добавил функции по всключения/выключению панели паузы, потому что
+	// там может быть дополнительный функционал (например, анимации)
+	// и это все может вызываться из разных мест
+	showPause();
 	// pauseBtn.interactive = !isPaused;
 }
 
@@ -175,12 +179,33 @@ function manageLives() {
 
 manageLives();
 
-// //////////////////////////////////////////////////////////////////////// GAMEPLAY
+// ///////////////////////////////////////////////////
 const textures = [
 	{ texture: bubbleTexture, prop: "isBubble" },
 	{ texture: heartTexture, prop: "isHeart" },
 	{ texture: bombTexture, prop: "isBomb" },
 ];
+
+function startGameplay() {
+	resetGameplay();
+
+	isGameplay = true;
+	// isGameplay = false;
+	// isPaused = false
+	// pauseContainer.visible = false
+	// score = 0
+	// lives = MAX_LIVES
+}
+
+function resetGameplay() {
+	bubblesContainer.removeChildren();
+	score = 0;
+	lives = MAX_LIVES;
+
+	manageLives();
+
+	isGameplay = false;
+}
 
 function createBubbleAt(x = 0, y = 0) {
 	const ind = random(0, textures.length - 1);
@@ -258,13 +283,13 @@ const SPAN_BUBBLE_DELAY = 500;
 let curSpawnBubbleDelay = 0;
 let curBlinkLifeDelay = 500;
 
-// //////////////////////////////////////////////////////////////////////// UPDATE
+// ///////////////////////////////////////// UPDATE
 app.ticker.add((delta) => {
 	if (!delta) return;
 	if (isGameOver) return;
 	if (isPaused) return;
 
-	if (isGamePlay) {
+	if (isGameplay) {
 		curSpawnBubbleDelay -= delta * 10;
 
 		if (curSpawnBubbleDelay < 0) {
@@ -310,7 +335,7 @@ app.ticker.add((delta) => {
 	}
 });
 
-// //////////////////////////////////////////////////////////////////////// PAUSE
+// /////////////////////////////////////////////////////////////////////////////////////////////////// PAUSE
 // это не попап, это панель паузы. Многие панельки в геймдеве выглядят, как попапы
 // чтобы не называть их все попапами, лучше использовать более узкие названия
 
@@ -345,7 +370,7 @@ pausePlayBtn.scale.set(0.85);
 pausePlayBtn.interactive = true;
 pausePlayBtn.x = 356;
 pausePlayBtn.y = 526;
-pausePlayBtn.on("pointerdown", onPauseToggle);
+pausePlayBtn.on("pointerdown", handlerPauseResume);
 pauseContainer.addChild(pausePlayBtn);
 
 // кнопка выхода
@@ -355,181 +380,81 @@ exitBtn.scale.set(0.85);
 exitBtn.interactive = true;
 exitBtn.x = 94;
 exitBtn.y = 526;
-exitBtn.on("pointerdown", ShowMenu)
+exitBtn.on("pointerdown", handlerPauseHome)
 pauseContainer.addChild(exitBtn);
 
-// /////////////////////////////////////////// МЕНЮ
+function handlerPauseResume() {
+	hidePause();
+}
 
+function handlerPauseHome() {
+	hidePause();
+	resetGameplay();
+	showMenu();
+}
+
+function showPause() {
+	pauseContainer.visible = true;
+	isPaused = true;
+}
+
+function hidePause() {
+	pauseContainer.visible = false;
+	isPaused = false;
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////// МЕНЮ
 //  фон меню
 const menuBg = new Sprite(menuBgTexture);
-menuBg.width = app.screen.width
+menuBg.width = app.screen.width;
 menuBg.height = app.screen.height;
 menuContainer.addChild(menuBg);
 
 // кнопка play в меню
-const menuPlayBtn = new Sprite(playBtnTexture)
-menuPlayBtn.anchor.set(0.5)
-menuPlayBtn.scale.set(2.1)
-menuPlayBtn.interactive = true
-menuPlayBtn.x = app.screen.width / 2
+const menuPlayBtn = new Sprite(playBtnTexture);
+menuPlayBtn.anchor.set(0.5);
+menuPlayBtn.scale.set(2.1);
+menuPlayBtn.interactive = true;
+menuPlayBtn.x = app.screen.width / 2;
 menuPlayBtn.y = app.screen.height / 2 + 10;
-menuPlayBtn.on("pointerdown", startGamePlay)
-menuContainer.addChild(menuPlayBtn)
+menuPlayBtn.on("pointerdown", handlerMenuPlay);
+menuContainer.addChild(menuPlayBtn);
 
-function startGamePlay () {
-	hideMenu()
+function handlerMenuPlay() {
+	hideMenu();
+	startGameplay();
 }
 
-function ShowMenu() {
+function showMenu() {
 	menuContainer.visible = true;
-	isGamePlay = false;
-	isPaused = false
-	pauseContainer.visible = false
-	score = 0
-	lives = MAX_LIVES
+	// выглядит, как подмешивание "левого" функционала. В принципе, в маленьких проектам
+	// так можно делать, но лучше стремиться отделять логику, потому что эти геймплейные вещи
+	// могут вызываться из разных мест, а не только при показе меню.
+	// isGameplay = false;
+	// isPaused = false
+	// pauseContainer.visible = false
+	// score = 0
+	// lives = MAX_LIVES
 
-	for (let i = bubblesContainer.children.length - 1; i >= 0 ; i--) {
-		let bubble = bubblesContainer.children[i]
-		bubble.destroy()
-	}
+	// for (let i = bubblesContainer.children.length - 1; i >= 0 ; i--) {
+	// 	let bubble = bubblesContainer.children[i]
+	// 	bubble.destroy()
+	// }
 }
 
 function hideMenu() {
 	menuContainer.visible = false;
-	isGamePlay = true;
-} 
+	// это подмешивание стороннего функционала в функцию, которая предназначена для другого.
+	// Лучше перенести включение геймплея в функцию startGamePlay, которая и должна отвечать
+	// за включение геймплея и обработку каких-нибудь стартовых параметров для геймплея/
+	// Например, нам надо будет запустить геймплей с панели очков, после смерти и тогда,
+	// чтобы сделать isGamePlay = true нам надо будет вызывать функцию hideMenu,
+	// что нелогично, ведь мы не в меню, а на панели очков
+	// isGamePlay = true;
+}
 
+// ///////////////////////////////////////////////////////////////////////////////////////////// START
+resetGameplay();
+hidePause();
 
-// mainCode /////////////////////////////////////////////////////////////////////////////////////////////
-
-// const gameContainer = new Container();
-// gameContainer.x = 0;
-// gameContainer.y = 0;
-
-// app.stage.addChild(gameContainer);
-// const bubbles = [];
-
-// let sprite = Sprite.from("./static/images/bg-sheet0.png");
-// gameContainer.addChild(sprite);
-// let bubbleTexture = Texture.from("./static/images/bubble-sheet0.png");
-// let heartTexture = Texture.from("./static/images/heart-sheet0.png");
-// let bombTexture = Texture.from("./static/images/bomb-sheet0.png");
-
-// let textures = ["./static/images/bubble-sheet0.png", "./static/images/heart-sheet0.png", "./static/images/bomb-sheet0.png"];
-// let sprites = [];
-// let lives = 5;
-
-// buidSprites(textures)
-
-// function buidSprites(textures) {
-// 	if (lives < 0) return;
-// 	const index = Math.floor(Math.random() * textures.length);
-// 	let scale = 0.8 + Math.random() * 0.3;
-// 	let position = { x: Math.random() * app.screen.width, y: app.screen.height + 100 };
-// 	const speed = 1.5 + Math.random() * 0.3;
-// 	const texture = Texture.from(textures[index]);
-// 	const sprite = new Sprite(texture);
-
-// 	sprite.x = position.x;
-// 	sprite.y = position.y;
-// 	sprite.interactive = true;
-// 	sprite.anchor.set(0.5);
-// 	sprite.scale.set(scale);
-// 	sprite.speed = speed;
-
-// 	sprite.on("pointerdown", onBubbleClick);
-// 	// gameContainer.addChild(sprite);
-// 	// sprites.push(sprite);
-
-// 	setTimeout(() => {
-//         gameContainer.addChild(sprite);
-// 		sprites.push(sprite);
-// 		buidSprites(textures);
-// 	}, 500 + (Math.random() * 2000));
-// }
-
-// let bubblesContainer = new Container();
-
-// for (let i = 0; i < 30; i++) {
-// 	const texture = PIXI.Texture.from("./static/images/bubble-sheet0.png");
-// 	const bubble = new Sprite(texture);
-// 	bubble.anchor.set(0.5);
-// 	bubble.scale.set(0.2 + Math.random() * 0.2);
-
-// 	bubble.x = (Math.random() - 0.5) * 30;
-// 	bubble.y = (Math.random() - 0.5) * 30;
-// 	bubble.direction = i + (Math.random() - 0.5) * Math.PI;
-// 	bubble.speed = 2.5 + Math.random() * 0.3;
-// 	bubbles.push(bubble);
-
-// 	bubblesContainer.addChild(bubble);
-// }
-
-// // let bubbleSprite = new Sprite(bubbleTexture);
-// // let scale = 0.8;
-// // bubbleSprite.x = 100;
-// // bubbleSprite.y = app.screen.height + 100;
-// // bubbleSprite.interactive = true;
-// // bubbleSprite.anchor.set(0.5);
-// // bubbleSprite.scale.set(scale);
-// let elapsed = 0.0;
-// // let count = 0;
-// let isBurst = false;
-// // let positions = { x: bubbleSprite.x, y: bubbleSprite.y };
-// app.ticker.add((delta) => {
-// 	if (isBurst) {
-// 		for (let i = 0; i < bubbles.length; i++) {
-// 			const bubble = bubbles[i];
-
-// 			bubble.y += Math.sin(bubble.direction) * bubble.speed;
-// 			bubble.x += Math.cos(bubble.direction) * bubble.speed;
-// 			bubble.alpha -= 0.02;
-// 		}
-
-// 	}
-// 	elapsed += delta;
-// 	for (let i = 0; i < sprites.length; i++) {
-// 		const sprite = sprites[i];
-// 		console.log(sprite.texture == bombTexture);
-//         // if (sprite.texture == bubbleTexture || sprite.texture == bombTexture || sprite.texture == heartTexture) {
-// 			// sprite.scale.x = sprite.scale + Math.sin((Math.PI * elapsed) / 70.0) / 20;
-// 			// sprite.scale.y = sprite.scale - Math.sin((Math.PI * elapsed) / 70.0) / 20;
-// 			sprite.y -= sprite.speed;
-// 		// }
-// 		// if (sprite.y <= -sprite.height) {
-// 		// 	console.log(sprite.height);
-// 		// 	sprite.y = app.screen.height + 100;
-// 		// 	gameContainer.removeChild(sprite);
-// 		// 	sprite.destroy();
-// 		// 	elapsed = 0.0;
-// 		// 	lives -= 1;
-// 		// }
-// 	}
-// 	// if (bubbleSprite.texture == bubbleTexture) {
-// 	// 	bubbleSprite.scale.x = scale + Math.sin((Math.PI * elapsed) / 70.0) / 20;
-// 	// 	bubbleSprite.scale.y = scale - Math.sin((Math.PI * elapsed) / 70.0) / 20;
-// 	// 	bubbleSprite.y -= 1.5;
-// 	// 	positions.y = bubbleSprite.y;
-// 	// }
-// 	// if (!bubbleSprite.destroyed && bubbleSprite.y <= -bubbleSprite.height) {
-// 	// 	console.log(bubbleSprite);
-// 	// 	bubbleSprite.y = app.screen.height + 100;
-// 	// 	gameContainer.removeChild(bubbleSprite);
-// 	// 	bubbleSprite.destroy();
-// 	// 	elapsed = 0.0;
-// 	// }
-// });
-// // bubbleSprite.on("pointerdown", onBubbleClick);
-
-// // gameContainer.addChild(bubbleSprite);
-
-// function onBubbleClick() {
-// 	console.log(this, bubblesContainer);
-//     bubblesContainer.x = this.x;
-// 	bubblesContainer.y = this.y;
-// 	gameContainer.removeChild(this);
-// 	this.destroy();
-// 	isBurst = true;
-
-// 	gameContainer.addChild(bubblesContainer);
-// }
+showMenu();
