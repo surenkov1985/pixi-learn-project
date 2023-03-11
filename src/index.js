@@ -169,7 +169,11 @@ function manageLives() {
 	updateUILives();
 }
 
-manageLives();
+function updateScore() {
+	UIText.text = UIText.scoreText + score;
+}
+
+// manageLives();
 
 // ///////////////////////////////////////////////////
 const textures = [
@@ -190,14 +194,10 @@ function resetGameplay() {
 	score = 0;
 	lives = MAX_LIVES;
 
-	scoreUpdate();
+	updateScore();
 	manageLives();
 
 	isGameplay = false;
-}
-
-function scoreUpdate() {
-	UIText.text = UIText.scoreText + score;
 }
 
 function createBubbleAt(x = 0, y = 0) {
@@ -259,7 +259,7 @@ function onBubbleClick(e) {
 		score++;
 	}
 
-	scoreUpdate();
+	updateScore();
 
 	this.destroy();
 }
@@ -412,7 +412,7 @@ gameOverPlayBtn.scale.set(0.85);
 gameOverPlayBtn.interactive = true;
 gameOverPlayBtn.x = 356;
 gameOverPlayBtn.y = 526;
-gameOverPlayBtn.on("pointerdown", newGameHandler);
+gameOverPlayBtn.on("pointerdown", handlerGameOverNew);
 gameOverContainer.addChild(gameOverPlayBtn);
 
 // кнопка exit геймовера
@@ -422,16 +422,16 @@ gameOverExitBtn.scale.set(0.85);
 gameOverExitBtn.interactive = true;
 gameOverExitBtn.x = 94;
 gameOverExitBtn.y = 526;
-gameOverExitBtn.on("pointerdown", exitGameHandler);
+gameOverExitBtn.on("pointerdown", handlerGameOverExit);
 gameOverContainer.addChild(gameOverExitBtn);
 
-function exitGameHandler() {
+function handlerGameOverExit() {
 	hideGameOver();
 	resetGameplay();
 	showMenu();
 }
 
-function newGameHandler() {
+function handlerGameOverNew() {
 	startGameplay();
 	hideGameOver();
 }
