@@ -217,7 +217,7 @@ function resetGameplay() {
 function createBubble(type = 'default') {
 
 	const texture = BUBBLE_TYPES[type] && BUBBLE_TYPES[type].texture;
-	const bubble = new Sprite(texture, options);
+	const bubble = new Sprite(texture);
 
 	bubble.type = type;
 	bubble.anchor.set(0.5);
