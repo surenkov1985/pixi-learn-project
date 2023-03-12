@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
 import { Graphics } from "pixi.js";
 import { sound } from "@pixi/sound";
+import { gsap } from "gsap";
 
 // ++++++++++++++++++++ MATH
 function random(min, max) {
@@ -399,8 +400,10 @@ pauseContainer.addChild(pauseShading);
 const pauseBg = new Sprite(pausePopupTexture);
 pauseBg.anchor.set(0.5);
 pauseBg.scale.set(0.85);
-pauseBg.x = app.screen.width / 2;
-pauseBg.y = app.screen.height / 2;
+pauseBg.initX = app.screen.width / 2;
+pauseBg.initY = app.screen.height / 2;
+pauseBg.x = pauseBg.initX;
+pauseBg.y = pauseBg.initY;
 pauseContainer.addChild(pauseBg);
 
 // кнопка play
@@ -408,20 +411,20 @@ const pausePlayBtn = new Sprite(playBtnTexture);
 pausePlayBtn.anchor.set(0.5);
 pausePlayBtn.scale.set(0.85);
 pausePlayBtn.interactive = true;
-pausePlayBtn.x = 356;
-pausePlayBtn.y = 526;
+pausePlayBtn.x = 140;
+pausePlayBtn.y = 140;
 pausePlayBtn.on("pointerdown", handlerPauseResume);
-pauseContainer.addChild(pausePlayBtn);
+pauseBg.addChild(pausePlayBtn);
 
 // кнопка выхода
 const exitBtn = new Sprite(exitBtnTexture);
 exitBtn.anchor.set(0.5);
 exitBtn.scale.set(0.85);
 exitBtn.interactive = true;
-exitBtn.x = 94;
-exitBtn.y = 526;
+exitBtn.x = -140;
+exitBtn.y = 140;
 exitBtn.on("pointerdown", handlerPauseHome);
-pauseContainer.addChild(exitBtn);
+pauseBg.addChild(exitBtn);
 
 function handlerPauseResume() {
 	hidePause();
@@ -434,6 +437,14 @@ function handlerPauseHome() {
 }
 
 function showPause() {
+	pauseShading.alpha = 0;
+	pauseBg.alpha = 0;
+	pauseBg.x = pauseBg.initX - 100;
+
+	gsap.timeline()
+		.to([pauseShading,pauseBg], {alpha: 1, duration: 0.2})
+		.to(pauseBg, {x: pauseBg.initX, duration: 0.4, ease: 'back.out'}, 0)
+
 	pauseContainer.visible = true;
 	isPaused = true;
 }
@@ -514,7 +525,8 @@ menuContainer.addChild(menuBg);
 // кнопка play в меню
 const menuPlayBtn = new Sprite(playBtnTexture);
 menuPlayBtn.anchor.set(0.5);
-menuPlayBtn.scale.set(2.1);
+menuPlayBtn.initScale = 2.1;
+menuPlayBtn.scale.set(menuPlayBtn.initScale);
 menuPlayBtn.interactive = true;
 menuPlayBtn.x = app.screen.width / 2;
 menuPlayBtn.y = app.screen.height / 2 + 10;
@@ -522,8 +534,17 @@ menuPlayBtn.on("pointerdown", handlerMenuPlay);
 menuContainer.addChild(menuPlayBtn);
 
 function handlerMenuPlay() {
-	hideMenu();
-	startGameplay();
+	gsap.timeline({
+			onComplete: () => {
+				hideMenu();
+				startGameplay();
+			}
+		})
+		.to(this.scale, {x: menuPlayBtn.initScale * 1.1, y: menuPlayBtn.initScale * 1.1, duration: 0.1})
+		.to(this.scale, {x: menuPlayBtn.initScale, y: menuPlayBtn.initScale, duration: 0.1})
+;
+	// hideMenu();
+	// startGameplay();
 }
 
 function showMenu() {
@@ -541,6 +562,13 @@ hidePause();
 hideGameOver();
 showMenu();
 
+// для тестов
+// {
+// 	hideMenu();
+// 	setTimeout(() => {
+// 		showPause();
+// 	}, 500);
+// }
 
 // ////////////////////////////////////////// POOL
 const Pool = {

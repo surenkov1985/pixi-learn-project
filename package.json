@@ -51,6 +51,7 @@
 	},
 	"dependencies": {
 		"@pixi/sound": "^5.1.1",
+		"gsap": "^3.11.4",
 		"pixi.js": "^7.1.3"
 	}
 }
