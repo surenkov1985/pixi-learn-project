@@ -449,13 +449,6 @@ function showPause() {
 }
 
 function hidePause() {
-	// gsap.timeline()
-	// 	.to(pauseBg, { x: -pauseBg.initX, duration: 0.4, ease: "back.out" })
-	// 	.to([pauseShading, pauseBg], { alpha: 0, duration: 0.4 }, 0)
-	// 	.then(() => {
-	// 		pauseContainer.visible = false;
-	// 		isPaused = false;
-	// 	});
 	pauseContainer.visible = false;
 	isPaused = false;
 }
@@ -515,7 +508,7 @@ function handlerGameOverNew() {
 function showGameOver() {
 	gameOverShading.alpha = 0;
 	gameOverBg.alpha = 0;
-	gameOverBg.x = -gameOverBg.initX;
+	gameOverBg.x = gameOverBg.initX - 100;
 
 	gsap.timeline()
 		.to([gameOverShading, gameOverBg], { alpha: 1, duration: 0.2 })
@@ -526,13 +519,8 @@ function showGameOver() {
 }
 
 function hideGameOver() {
-	gsap.timeline()
-		.to(gameOverBg, { x: -gameOverBg.initX, duration: 0.4, ease: "back.out" })
-		.to([gameOverShading, gameOverBg], { alpha: 0, duration: 0.4 }, 0)
-		.then(() => {
-			gameOverContainer.visible = false;
-			isGameOver = false;
-		});
+	gameOverContainer.visible = false;
+	isGameOver = false;
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////// МЕНЮ
