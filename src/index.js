@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
 import { Graphics } from "pixi.js";
+import { sound } from "@pixi/sound";
 
 // ++++++++++++++++++++ MATH
 function random(min, max) {
@@ -26,6 +27,9 @@ let app = new App({ width: 450, height: 800, background: 0x227dae });
 document.body.appendChild(app.view);
 
 // //////////////////////////////////////////////////////////////////////// АССЕТЫ (картинки, звуки, шрифты)
+
+sound.add("clickBubbleSound", "./static/audio/touch.ogg")
+sound.add("startGameSound", "./static/audio/click.ogg");
 
 const bgTexture = Texture.from("./static/images/bg-sheet0.png");
 const headerBgTexture = Texture.from("./static/images/header-sheet0.png");
@@ -90,11 +94,14 @@ const bg = new Sprite(bgTexture);
 bgContainer.addChild(bg);
 
 // //////////////////////////////////////////////////////////////////////// HEADER
+
+// фон хедера
 const headerBg = new Sprite(headerBgTexture);
 headerBg.width = app.screen.width;
 headerBg.height = 90;
 headerContainer.addChild(headerBg);
 
+// сердечко для обозначения жизней
 const heartUiSprite = new Sprite(heartUiTexture);
 heartUiSprite.anchor.set(0.5);
 heartUiSprite.scale.set(0.9);
@@ -102,6 +109,7 @@ heartUiSprite.x = app.screen.width / 2;
 heartUiSprite.y = 35;
 headerContainer.addChild(heartUiSprite);
 
+// контейнер для жизней
 const heartsContainer = new Container();
 headerContainer.addChild(heartsContainer);
 
@@ -121,6 +129,10 @@ UIText.x = 15;
 UIText.y = 20;
 headerContainer.addChild(UIText);
 
+function updateScore() {
+	UIText.text = UIText.scoreText + score;
+}
+
 // кнопка паузы
 let pauseBtn = new Sprite(pauseBtnTexture);
 pauseBtn.anchor.set(0.5);
@@ -129,7 +141,6 @@ pauseBtn.interactive = true;
 pauseBtn.x = 395;
 pauseBtn.y = 75;
 pauseBtn.on("pointerdown", handlerGameplayPause);
-
 headerContainer.addChild(pauseBtn);
 
 function handlerGameplayPause() {
@@ -178,18 +189,7 @@ function manageLives() {
 	updateUILives();
 }
 
-function updateScore() {
-	UIText.text = UIText.scoreText + score;
-}
-
-// manageLives();
-
 // ///////////////////////////////////////////////////
-// const textures = [
-// 	{ texture: bubbleTexture, prop: "isBubble" },
-// 	{ texture: heartTexture, prop: "isHeart" },
-// 	{ texture: bombTexture, prop: "isBomb" },
-// ];
 
 function startGameplay() {
 	resetGameplay();
@@ -198,8 +198,6 @@ function startGameplay() {
 }
 
 function resetGameplay() {
-	// bubblesContainer.removeChildren();
-	// particlesContainer.removeChildren();
 	for (let i = 0; i < bubblesContainer.children.length; i++) {
 		bubblesContainer.children[i].disable();
 	}
@@ -217,8 +215,9 @@ function resetGameplay() {
 }
 
 function createBubble(type = 'default') {
+
 	const texture = BUBBLE_TYPES[type] && BUBBLE_TYPES[type].texture;
-	const bubble = new Sprite(texture);
+	const bubble = new Sprite(texture, options);
 
 	bubble.type = type;
 	bubble.anchor.set(0.5);
@@ -253,22 +252,11 @@ function createBubbleAt(x = 0, y = 0) {
 	const type = sample(['default', 'default', 'default', 'default', 'default', 'heart', 'bomb']);
 
 	const bubble = Pool.getBubble(type);
-	// const ind = random(0, textures.length - 1);
-	// const texture = textures[ind];
-	// const bubble = new Sprite(texture.texture);
-	// bubble.anchor.set(0.5);
 	bubble.initSpeed = random(2, 3.5);
 	bubble.initScale = randomFloat(0.6, 0.8);
 	bubble.scale.set(bubble.initScale);
-	// bubble.elapsed = 0;
-	// bubble.addRubberScale = 0;
-	// bubble.interactive = true;
 	bubble.x = x;
 	bubble.y = y;
-	// bubble.prop = texture.prop;
-	// bubble.on("pointerdown", onBubbleClick);
-
-	// bubblesContainer.addChild(bubble);
 
 	return bubble;
 }
@@ -299,18 +287,12 @@ function createParticle(type = 'default') {
 function createParticlesAt(x = 0, y = 0) {
 	for (let i = 0; i < 10; i++) {
 		const particle = Pool.getParticle('default');
-		// const particle = new Sprite(bubbleTexture);
-		// particle.anchor.set(0.5);
 		particle.scale.set(randomFloat(0.2, 0.4));
 		particle.direction = randomFloat(0, Math.PI * 2);
 		particle.speed = random(3, 5);
 		let randDist = random(0, 20);
 		particle.x = x + Math.cos(particle.direction) * randDist;
 		particle.y = y + Math.sin(particle.direction) * randDist;
-		// particle.elapsed = 0;
-		// particle.addRubberScale = 0;
-		//
-		// particlesContainer.addChild(particle);
 	}
 }
 
@@ -335,7 +317,7 @@ function onBubbleClick(e) {
 
 	updateScore();
 
-	// this.destroy();
+	sound.play("clickBubbleSound")
 	this.disable();
 }
 
@@ -348,7 +330,6 @@ function spawnBubble() {
 
 const SPAN_BUBBLE_DELAY = 500;
 let curSpawnBubbleDelay = 0;
-let curBlinkLifeDelay = 500;
 
 // ///////////////////////////////////////// UPDATE
 app.ticker.add((delta) => {
@@ -381,7 +362,7 @@ app.ticker.add((delta) => {
 
 						manageLives();
 					}
-					// bubble.destroy();
+					
 					bubble.disable();
 				}
 			}
@@ -396,7 +377,6 @@ app.ticker.add((delta) => {
 				particle.alpha -= 0.05 * delta;
 
 				if (particle.alpha <= 0) {
-					// particle.destroy();
 					particle.disable();
 				}
 			}
@@ -552,6 +532,7 @@ function showMenu() {
 
 function hideMenu() {
 	menuContainer.visible = false;
+	sound.play("startGameSound")
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////// START
@@ -608,7 +589,6 @@ const Pool = {
 				i++;
 			}
 		}
-
 		return item;
 	}
 };
