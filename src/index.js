@@ -438,22 +438,26 @@ function handlerPauseHome() {
 function showPause() {
 	pauseShading.alpha = 0;
 	pauseBg.alpha = 0;
-	pauseBg.x = -pauseBg.initX;
+	pauseBg.x = pauseBg.initX - 100;
 
-	gsap.timeline().to([pauseShading, pauseBg], { alpha: 1, duration: 0.2 }).to(pauseBg, { x: pauseBg.initX, duration: 0.4, ease: "back.out" }, 0);
+	gsap.timeline()
+		.to([pauseShading, pauseBg], { alpha: 1, duration: 0.2 })
+		.to(pauseBg, { x: pauseBg.initX, duration: 0.4, ease: "back.out" }, 0);
 
 	pauseContainer.visible = true;
 	isPaused = true;
 }
 
 function hidePause() {
-	gsap.timeline()
-		.to(pauseBg, { x: -pauseBg.initX, duration: 0.4, ease: "back.out" })
-		.to([pauseShading, pauseBg], { alpha: 0, duration: 0.4 }, 0)
-		.then(() => {
-			pauseContainer.visible = false;
-			isPaused = false;
-		});
+	// gsap.timeline()
+	// 	.to(pauseBg, { x: -pauseBg.initX, duration: 0.4, ease: "back.out" })
+	// 	.to([pauseShading, pauseBg], { alpha: 0, duration: 0.4 }, 0)
+	// 	.then(() => {
+	// 		pauseContainer.visible = false;
+	// 		isPaused = false;
+	// 	});
+	pauseContainer.visible = false;
+	isPaused = false;
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////// GAME OVER
@@ -522,7 +526,6 @@ function showGameOver() {
 }
 
 function hideGameOver() {
-
 	gsap.timeline()
 		.to(gameOverBg, { x: -gameOverBg.initX, duration: 0.4, ease: "back.out" })
 		.to([gameOverShading, gameOverBg], { alpha: 0, duration: 0.4 }, 0)
@@ -530,7 +533,6 @@ function hideGameOver() {
 			gameOverContainer.visible = false;
 			isGameOver = false;
 		});
-	
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////// МЕНЮ
@@ -553,16 +555,13 @@ menuPlayBtn.on("pointerdown", handlerMenuPlay);
 menuContainer.addChild(menuPlayBtn);
 
 function handlerMenuPlay() {
-	gsap.timeline({
-		onComplete: () => {
+	gsap.timeline()
+		.to(this.scale, { x: menuPlayBtn.initScale * 1.1, y: menuPlayBtn.initScale * 1.1, duration: 0.1 })
+		.to(this.scale, { x: menuPlayBtn.initScale, y: menuPlayBtn.initScale, duration: 0.1 })
+		.then(() => {
 			hideMenu();
 			startGameplay();
-		},
-	})
-		.to(this.scale, { x: menuPlayBtn.initScale * 1.1, y: menuPlayBtn.initScale * 1.1, duration: 0.1 })
-		.to(this.scale, { x: menuPlayBtn.initScale, y: menuPlayBtn.initScale, duration: 0.1 });
-	// hideMenu();
-	// startGameplay();
+		})
 }
 
 function showMenu() {
@@ -584,7 +583,8 @@ showMenu();
 // {
 // 	hideMenu();
 // 	setTimeout(() => {
-// 		showPause();
+// 		// showPause();
+// 		showGameOver();
 // 	}, 500);
 // }
 
