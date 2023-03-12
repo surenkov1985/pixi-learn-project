@@ -29,7 +29,7 @@ document.body.appendChild(app.view);
 
 // //////////////////////////////////////////////////////////////////////// АССЕТЫ (картинки, звуки, шрифты)
 
-sound.add("clickBubbleSound", "./static/audio/touch.ogg")
+sound.add("clickBubbleSound", "./static/audio/touch.ogg");
 sound.add("startGameSound", "./static/audio/click.ogg");
 
 const bgTexture = Texture.from("./static/images/bg-sheet0.png");
@@ -51,10 +51,10 @@ const MAX_LIVES = 3;
 let lives = MAX_LIVES;
 
 const BUBBLE_TYPES = {
-	'default': {texture: bubbleTexture},
-	'heart': {texture: heartTexture},
-	'bomb': {texture: bombTexture},
-}
+	default: { texture: bubbleTexture },
+	heart: { texture: heartTexture },
+	bomb: { texture: bombTexture },
+};
 
 let isGameOver = false;
 let isGameplay = false;
@@ -215,8 +215,7 @@ function resetGameplay() {
 	isGameplay = false;
 }
 
-function createBubble(type = 'default') {
-
+function createBubble(type = "default") {
 	const texture = BUBBLE_TYPES[type] && BUBBLE_TYPES[type].texture;
 	const bubble = new Sprite(texture);
 
@@ -234,23 +233,23 @@ function createBubble(type = 'default') {
 
 	bubblesContainer.addChild(bubble);
 
-	bubble.enable = function() {
+	bubble.enable = function () {
 		this.active = true;
 		this.visible = true;
 		this.interactive = true;
 		this.elapsed = 0;
 		this.addRubberScale = 0;
-	}
-	bubble.disable = function() {
+	};
+	bubble.disable = function () {
 		this.active = false;
 		this.visible = false;
 		this.interactive = false;
-	}
+	};
 
 	return bubble;
 }
 function createBubbleAt(x = 0, y = 0) {
-	const type = sample(['default', 'default', 'default', 'default', 'default', 'heart', 'bomb']);
+	const type = sample(["default", "default", "default", "default", "default", "heart", "bomb"]);
 
 	const bubble = Pool.getBubble(type);
 	bubble.initSpeed = random(2, 3.5);
@@ -262,7 +261,7 @@ function createBubbleAt(x = 0, y = 0) {
 	return bubble;
 }
 
-function createParticle(type = 'default') {
+function createParticle(type = "default") {
 	const particle = new Sprite(bubbleTexture);
 
 	particle.type = type;
@@ -273,21 +272,21 @@ function createParticle(type = 'default') {
 
 	particlesContainer.addChild(particle);
 
-	particle.enable = function() {
+	particle.enable = function () {
 		this.active = true;
 		this.visible = true;
 		this.alpha = 1;
-	}
-	particle.disable = function() {
+	};
+	particle.disable = function () {
 		this.active = false;
 		this.visible = false;
-	}
+	};
 
 	return particle;
 }
 function createParticlesAt(x = 0, y = 0) {
 	for (let i = 0; i < 10; i++) {
-		const particle = Pool.getParticle('default');
+		const particle = Pool.getParticle("default");
 		particle.scale.set(randomFloat(0.2, 0.4));
 		particle.direction = randomFloat(0, Math.PI * 2);
 		particle.speed = random(3, 5);
@@ -318,7 +317,7 @@ function onBubbleClick(e) {
 
 	updateScore();
 
-	sound.play("clickBubbleSound")
+	sound.play("clickBubbleSound");
 	this.disable();
 }
 
@@ -363,7 +362,7 @@ app.ticker.add((delta) => {
 
 						manageLives();
 					}
-					
+
 					bubble.disable();
 				}
 			}
@@ -439,19 +438,22 @@ function handlerPauseHome() {
 function showPause() {
 	pauseShading.alpha = 0;
 	pauseBg.alpha = 0;
-	pauseBg.x = pauseBg.initX - 100;
+	pauseBg.x = -pauseBg.initX;
 
-	gsap.timeline()
-		.to([pauseShading,pauseBg], {alpha: 1, duration: 0.2})
-		.to(pauseBg, {x: pauseBg.initX, duration: 0.4, ease: 'back.out'}, 0)
+	gsap.timeline().to([pauseShading, pauseBg], { alpha: 1, duration: 0.2 }).to(pauseBg, { x: pauseBg.initX, duration: 0.4, ease: "back.out" }, 0);
 
 	pauseContainer.visible = true;
 	isPaused = true;
 }
 
 function hidePause() {
-	pauseContainer.visible = false;
-	isPaused = false;
+	gsap.timeline()
+		.to(pauseBg, { x: -pauseBg.initX, duration: 0.4, ease: "back.out" })
+		.to([pauseShading, pauseBg], { alpha: 0, duration: 0.4 }, 0)
+		.then(() => {
+			pauseContainer.visible = false;
+			isPaused = false;
+		});
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////// GAME OVER
@@ -469,8 +471,10 @@ gameOverContainer.addChild(gameOverShading);
 const gameOverBg = new Sprite(gameOverPopupTexture);
 gameOverBg.anchor.set(0.5);
 gameOverBg.scale.set(0.85);
-gameOverBg.x = app.screen.width / 2;
-gameOverBg.y = app.screen.height / 2;
+gameOverBg.initX = app.screen.width / 2;
+gameOverBg.initY = app.screen.height / 2;
+gameOverBg.x = gameOverBg.initX;
+gameOverBg.y = gameOverBg.initY;
 gameOverContainer.addChild(gameOverBg);
 
 // кнопка плей геймовера
@@ -478,20 +482,20 @@ const gameOverPlayBtn = new Sprite(playBtnTexture);
 gameOverPlayBtn.anchor.set(0.5);
 gameOverPlayBtn.scale.set(0.85);
 gameOverPlayBtn.interactive = true;
-gameOverPlayBtn.x = 356;
-gameOverPlayBtn.y = 526;
+gameOverPlayBtn.x = 150;
+gameOverPlayBtn.y = 150;
 gameOverPlayBtn.on("pointerdown", handlerGameOverNew);
-gameOverContainer.addChild(gameOverPlayBtn);
+gameOverBg.addChild(gameOverPlayBtn);
 
 // кнопка exit геймовера
 const gameOverExitBtn = new Sprite(exitBtnTexture);
 gameOverExitBtn.anchor.set(0.5);
 gameOverExitBtn.scale.set(0.85);
 gameOverExitBtn.interactive = true;
-gameOverExitBtn.x = 94;
-gameOverExitBtn.y = 526;
+gameOverExitBtn.x = -150;
+gameOverExitBtn.y = 150;
 gameOverExitBtn.on("pointerdown", handlerGameOverExit);
-gameOverContainer.addChild(gameOverExitBtn);
+gameOverBg.addChild(gameOverExitBtn);
 
 function handlerGameOverExit() {
 	hideGameOver();
@@ -505,13 +509,28 @@ function handlerGameOverNew() {
 }
 
 function showGameOver() {
+	gameOverShading.alpha = 0;
+	gameOverBg.alpha = 0;
+	gameOverBg.x = -gameOverBg.initX;
+
+	gsap.timeline()
+		.to([gameOverShading, gameOverBg], { alpha: 1, duration: 0.2 })
+		.to(gameOverBg, { x: gameOverBg.initX, duration: 0.4, ease: "back.out" }, 0);
+
 	gameOverContainer.visible = true;
 	isGameOver = true;
 }
 
 function hideGameOver() {
-	gameOverContainer.visible = false;
-	isGameOver = false;
+
+	gsap.timeline()
+		.to(gameOverBg, { x: -gameOverBg.initX, duration: 0.4, ease: "back.out" })
+		.to([gameOverShading, gameOverBg], { alpha: 0, duration: 0.4 }, 0)
+		.then(() => {
+			gameOverContainer.visible = false;
+			isGameOver = false;
+		});
+	
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////// МЕНЮ
@@ -535,14 +554,13 @@ menuContainer.addChild(menuPlayBtn);
 
 function handlerMenuPlay() {
 	gsap.timeline({
-			onComplete: () => {
-				hideMenu();
-				startGameplay();
-			}
-		})
-		.to(this.scale, {x: menuPlayBtn.initScale * 1.1, y: menuPlayBtn.initScale * 1.1, duration: 0.1})
-		.to(this.scale, {x: menuPlayBtn.initScale, y: menuPlayBtn.initScale, duration: 0.1})
-;
+		onComplete: () => {
+			hideMenu();
+			startGameplay();
+		},
+	})
+		.to(this.scale, { x: menuPlayBtn.initScale * 1.1, y: menuPlayBtn.initScale * 1.1, duration: 0.1 })
+		.to(this.scale, { x: menuPlayBtn.initScale, y: menuPlayBtn.initScale, duration: 0.1 });
 	// hideMenu();
 	// startGameplay();
 }
@@ -553,7 +571,7 @@ function showMenu() {
 
 function hideMenu() {
 	menuContainer.visible = false;
-	sound.play("startGameSound")
+	sound.play("startGameSound");
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////// START
@@ -572,21 +590,19 @@ showMenu();
 
 // ////////////////////////////////////////// POOL
 const Pool = {
-
 	CACHE: {},
 
-	getBubble: function(type) {
-		const key = 'bubble_' + type;
+	getBubble: function (type) {
+		const key = "bubble_" + type;
 		return this.getFromCache(key, () => createBubble(type));
 	},
 
-	getParticle: function(type) {
-		const key = 'particle_' + type;
+	getParticle: function (type) {
+		const key = "particle_" + type;
 		return this.getFromCache(key, () => createParticle(type));
 	},
 
 	getFromCache: function (key, createCallback) {
-
 		if (!this.CACHE[key]) this.CACHE[key] = [];
 
 		let stream = this.CACHE[key];
@@ -618,5 +634,5 @@ const Pool = {
 			}
 		}
 		return item;
-	}
+	},
 };
