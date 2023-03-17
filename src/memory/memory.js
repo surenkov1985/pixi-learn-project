@@ -1,7 +1,7 @@
 import { sound } from "@pixi/sound";
 import gsap from "gsap";
 import * as PIXI from "pixi.js";
-import "./assets/styles/index.scss";
+import "../assets/styles/index.scss";
 
 // инициализация приложения
 
@@ -91,14 +91,14 @@ const MONSTER_TYPES = {
 
 const levelsOptions = {
 	1: {
-		monstersNumber: 2,
+		// monstersNumber: 2,	// в целом, не нужный параметр, т.к. монстров будет rows * cols / 2, т.е. можно высчитать в процессе
 		rows: 2,
 		cols: 2,
 		cardScale: 1,
 		DefaultTime: 20,
 	},
 	2: {
-		monstersNumber: 4,
+		// monstersNumber: 4,
 		rows: 2,
 		cols: 4,
 		cardScale: 1,
@@ -302,55 +302,66 @@ function spawnTypes(number) {
 	return arr.sort(() => Math.random() - 0.5);
 }
 
-function createShirtCard(type) {
-	const shirtCard = new Sprite(shirtCardTexture);
+// function createShirtCard(type) {
+// 	const shirtCard = new Sprite(shirtCardTexture);
+//
+// 	shirtCard.width = DEFAULT_CARD_WIDTH;
+// 	shirtCard.height = DEFAULT_CARD_HEIGHT;
+// 	shirtCard.alpha = 1;
+// 	shirtCard.monsterType = type;
+// 	shirtCard.active = false;
+// 	shirtCard.selected = false;
+// 	shirtCard.interactive = true;
+// 	shirtCard.on("pointerdown", onCardHandler);
+//
+// 	cardsContainer.addChild(shirtCard);
+//
+// 	shirtCard.disable = function () {
+// 		this.active = false;
+// 		this.visible = false;
+// 		this.selected = false;
+// 	};
+//
+// 	shirtCard.enable = function () {
+// 		this.active = true;
+// 		this.visible = true;
+// 		this.alpha = 1;
+// 	};
+//
+// 	return shirtCard;
+// }
 
-	shirtCard.width = DEFAULT_CARD_WIDTH;
-	shirtCard.height = DEFAULT_CARD_HEIGHT;
-	shirtCard.alpha = 1;
-	shirtCard.monsterType = type;
-	shirtCard.active = false;
-	shirtCard.selected = false;
-	shirtCard.interactive = true;
-	shirtCard.on("pointerdown", onCardHandler);
+// function createdShirtCardAt(x, y, type) {
+// 	const card = Pool.getShirtCard(type);
+// 	card.x = x;
+// 	card.y = y;
+// 	return card;
+// }
 
-	cardsContainer.addChild(shirtCard);
-
-	shirtCard.disable = function () {
-		this.active = false;
-		this.visible = false;
-		this.selected = false;
-	};
-
-	shirtCard.enable = function () {
-		this.active = true;
-		this.visible = true;
-		this.alpha = 1;
-	};
-
-	return shirtCard;
-}
-
-function createdShirtCardAt(x, y, type) {
-	const card = Pool.getShirtCard(type);
+function spawnCardAt(x, y, type) {
+	const card = Pool.getCard(type);
 	card.x = x;
 	card.y = y;
+	cardsContainer.addChild(card);
 	return card;
 }
 
 function buildCards(level) {
 	const rows = level.rows;
 	const cols = level.cols;
-
-	const monsters = spawnTypes(level.monstersNumber);
+	const monstersCount = cols * rows / 2;
+	const monsters = spawnTypes(monstersCount);
 
 	for (let i = 0; i < rows; i++) {
 		let posY = (i % rows) * (DEFAULT_CARD_HEIGHT + 20);
 
 		for (let j = 0; j < cols; j++) {
 			const posX = (j % cols) * (DEFAULT_CARD_WIDTH + 20);
-			const monster = monsters.shift();
-			const card = createdShirtCardAt(posX, posY, monster);
+			// const monster = monsters.shift();
+			const monster = monsters.pop();		// pop - берет объект с конца массива, поэтому работает значительно быстрее, чем shift. Если нет острой необходимости, то лучше использовать pop
+			// const card = createdShirtCardAt(posX, posY, monster);
+			const card = spawnCardAt(posX, posY, monster);
+			card.setState('shirt');
 		}
 	}
 
@@ -360,100 +371,124 @@ function buildCards(level) {
 	monstersContainer.pivot.y = cardsContainer.pivot.y;
 }
 
-function createMonsterCard(type) {
-	const texture = MONSTER_TYPES[type]["texture"];
-	const monsterCard = new Sprite(texture);
+// function createMonsterCard(type) {
+// 	const texture = MONSTER_TYPES[type]["texture"];
+// 	const monsterCard = new Sprite(texture);
+//
+// 	monsterCard.width = DEFAULT_CARD_WIDTH;
+// 	monsterCard.height = DEFAULT_CARD_HEIGHT;
+// 	monsterCard.monsterType = type;
+// 	monsterCard.alpha = 1;
+// 	monsterCard.active = false;
+//
+// 	monstersContainer.addChild(monsterCard);
+//
+// 	monsterCard.disable = function () {
+// 		this.active = false;
+// 		this.visible = false;
+// 	};
+//
+// 	monsterCard.enable = function () {
+// 		this.alpha = 1;
+// 		this.active = true;
+// 		this.visible = true;
+// 	};
+//
+// 	return monsterCard;
+// }
 
-	monsterCard.width = DEFAULT_CARD_WIDTH;
-	monsterCard.height = DEFAULT_CARD_HEIGHT;
-	monsterCard.monsterType = type;
-	monsterCard.alpha = 1;
-	monsterCard.active = false;
-
-	monstersContainer.addChild(monsterCard);
-
-	monsterCard.disable = function () {
-		this.active = false;
-		this.visible = false;
-	};
-
-	monsterCard.enable = function () {
-		this.alpha = 1;
-		this.active = true;
-		this.visible = true;
-	};
-
-	return monsterCard;
-}
-
-function createMonsterCardAt(x, y, type) {
-	const card = Pool.getMonsterCard(type);
-
-	card.x = x;
-	card.y = y;
-
-	return card;
-}
+// function createMonsterCardAt(x, y, type) {
+// 	const card = Pool.getMonsterCard(type);
+//
+// 	card.x = x;
+// 	card.y = y;
+//
+// 	return card;
+// }
 
 function onCardHandler() {
 	if (isSelected) return;
 	isSelected = true;
 
-	const posX = this.x;
-	const posY = this.y;
-	console.log(this.monsterType);
-	const monsterCard = createMonsterCardAt(posX, posY, this.monsterType);
-	console.log(monsterCard);
+	const card = this.holder;
+
+	// const posX = this.x;
+	// const posY = this.y;
+	// console.log(this.monsterType);
+	console.log(card.type);
+	// const monsterCard = createMonsterCardAt(posX, posY, this.monsterType);
+	// console.log(monsterCard);
 
 	if (!firstCard) {
-		firstCard = this.monsterType;
-	} else if (!!firstCard && !secondCard) {
-		secondCard = this.monsterType;
+		firstCard = card;
+	} else if (!secondCard) {
+		secondCard = card;
 	}
-	gsap.timeline()
-		.to(this, {
-			alpha: 0,
-			duration: 0.5,
-		})
-		.then(() => {
-			isSelected = false;
-			this.disable();
-			if (firstCard && secondCard) {
-				checkCards(firstCard, secondCard);
-				firstCard = null;
-				secondCard = null;
-				isSelected = false;
-			}
-		});
+
+	card.setState('face', true, () => {
+		isSelected = false;
+
+		if (firstCard && secondCard) {
+			checkCards(firstCard, secondCard);
+
+			firstCard = null;
+			secondCard = null;
+		}
+	});
+
+	// gsap.timeline()
+	// 	.to(this, {
+	// 		alpha: 0,
+	// 		duration: 0.5,
+	// 	})
+	// 	.then(() => {
+	// 		isSelected = false;
+	// 		this.disable();
+	//
+	// 		if (firstCard && secondCard) {
+	// 			checkCards(firstCard, secondCard);
+	// 			firstCard = null;
+	// 			secondCard = null;
+	// 			isSelected = false;
+	// 		}
+	// 	});
 }
 
 function checkCards(firstCard, secondCard) {
-	if (firstCard === secondCard) {
+	if (firstCard.type === secondCard.type) {
 		score += scoreIndex * bonusIndex;
+
 		updateScore();
-		for (let i = 0; i < monstersContainer.children.length; i++) {
-			const card = monstersContainer.children[i];
-			card.alpha = 1;
-			const posX = card.x;
-			const posY = card.y;
 
-			gsap.to(card, {
-				alpha: 0,
-				duration: 0.5,
-			}).then(() => {
-				card.disable();
-			});
-		}
+		firstCard.animateHide();
+		secondCard.animateHide();
+
+		// for (let i = 0; i < monstersContainer.children.length; i++) {
+		// 	const card = monstersContainer.children[i];
+		// 	card.alpha = 1;
+		// 	const posX = card.x;
+		// 	const posY = card.y;
+		//
+		// 	gsap.to(card, {
+		// 		alpha: 0,
+		// 		duration: 0.5,
+		// 	}).then(() => {
+		// 		card.disable();
+		// 	});
+		// }
 	} else {
-		for (let i = 0; i < monstersContainer.children.length; i++) {
-			const card = monstersContainer.children[i];
-			card.alpha = 1;
-			const posX = card.x;
-			const posY = card.y;
+		firstCard.setState('shirt', true);
+		secondCard.setState('shirt', true);
 
-			const shirtCard = createdShirtCardAt(posX, posY, card.monsterType);
-			card.disable();
-		}
+		// for (let i = 0; i < monstersContainer.children.length; i++) {
+		// 	const card = monstersContainer.children[i];
+		// 	card.alpha = 1;
+		// 	const posX = card.x;
+		// 	const posY = card.y;
+		//
+		// 	const shirtCard = createdShirtCardAt(posX, posY, card.monsterType);
+		// 	card.disable();
+		// }
 	}
 }
 
@@ -463,18 +498,121 @@ function checkCards(firstCard, secondCard) {
 
 // });
 
+// ////////////////////////////////////  КАРТА  ///////////////////////////////////
+class Card extends PIXI.Container {
+	constructor(type) {
+		super();
+
+		this.type = type;
+		this.state = 'face';	// face, shirt
+		this.selected = false;
+		this.active = false;
+
+		this.shirt = new PIXI.Sprite(shirtCardTexture);
+		this.shirt.width = DEFAULT_CARD_WIDTH;
+		this.shirt.height = DEFAULT_CARD_HEIGHT;
+		this.shirt.anchor.set(0.5);
+		this.addChild(this.shirt);
+
+		this.face = new PIXI.Sprite(MONSTER_TYPES[type]["texture"]);
+		this.face.width = DEFAULT_CARD_WIDTH;
+		this.face.height = DEFAULT_CARD_HEIGHT;
+		this.face.anchor.set(0.5);
+		this.addChild(this.face);
+
+		const touchMargin = 5;	// увеличиваем немного зону тача, чтобы на мобилках пальцем было проще попасть
+		const touchWidth = DEFAULT_CARD_WIDTH + touchMargin * 2;
+		const touchHeight = DEFAULT_CARD_HEIGHT + touchMargin * 2;
+		this.touchZone = new PIXI.Graphics();
+		this.touchZone.beginFill(0x00ff00, 0.2);
+		this.touchZone.drawRect(-touchWidth / 2, -touchHeight / 2, touchWidth, touchHeight);
+		this.touchZone.endFill();
+		this.addChild(this.touchZone);
+		this.touchZone.alpha = 0;
+		this.touchZone.interactive = true;
+		this.touchZone.holder = this;
+		this.touchZone.on("pointerdown", onCardHandler);
+	}
+
+	setState(state = this.state, isAnim = false, callback) {
+		this.state = state;
+
+		if (isAnim) {
+			if (this.timelineShowFace) this.timelineShowFace.kill();
+			if (this.timelineShowShirt) this.timelineShowShirt.kill();
+
+			if (state === 'face') {
+				this.timelineShowFace = gsap.timeline({onComplete: () => {
+						if (callback) callback();
+					}})
+					.to(this.shirt, {alpha: 0, duration: 0.2})
+					.to(this.face, {alpha: 1, duration: 0.2})
+			} else {
+				this.timelineShowShirt = gsap.timeline({onComplete: () => {
+						if (callback) callback();
+					}})
+					.to(this.face, {alpha: 0, duration: 0.2})
+					.to(this.shirt, {alpha: 1, duration: 0.2})
+			}
+		} else {
+			if (state === 'face') {
+				this.face.alpha = 1;
+				this.shirt.alpha = 0;
+			} else {
+				this.face.alpha = 0;
+				this.shirt.alpha = 1;
+			}
+		}
+	}
+
+	animateHide() {
+		this.timelineHide = gsap.timeline({onComplete: () => {
+				this.disable();
+			}})
+			.to(this, {alpha: 0, duration: 0.2})
+	}
+
+
+	reset() {
+		if (this.timelineHide) this.timelineHide.kill();
+		if (this.timelineShowFace) this.timelineShowFace.kill();
+		if (this.timelineShowShirt) this.timelineShowShirt.kill();
+
+		this.selected = false;
+		this.alpha = 1;
+		this.rotation = 0;
+		this.scale.set(1);
+	}
+
+	enable() {
+		this.alpha = 1;
+		this.active = true;
+		this.visible = true;
+	}
+
+	disable() {
+		this.active = false;
+		this.visible = false;
+		this.reset();
+	}
+}
+
 // ////////////////////////////////////  POOL  ///////////////////////////////////
 
 const Pool = {
 	CACHE: {},
-	getShirtCard: function (type) {
-		const key = type + "_shirt";
-		return this.getFromCache(key, () => createShirtCard(type));
+	getCard: function (type) {
+		const key = 'card_' + type;
+		return this.getFromCache(key, () => new Card(type));
 	},
-	getMonsterCard: function (type) {
-		const key = type + "_card";
-		return this.getFromCache(key, () => createMonsterCard(type));
-	},
+	// getShirtCard: function (type) {
+	// 	const key = type + "_shirt";
+	// 	return this.getFromCache(key, () => createShirtCard(type));
+	// },
+	// getMonsterCard: function (type) {
+	// 	const key = type + "_card";
+	// 	return this.getFromCache(key, () => createMonsterCard(type));
+	// },
 
 	getFromCache: function (key, callback) {
 		if (!this.CACHE[key]) this.CACHE[key] = [];
@@ -511,5 +649,7 @@ const Pool = {
 		return item;
 	},
 };
+
+// //////////////////////////////////// СТАРТ ///////////////////////////////
 
 buildCards(levelsOptions[level]);

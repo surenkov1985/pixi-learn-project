@@ -1,2 +1,2 @@
-// import './bubbles.js';
-import './memory.js';
+// import './bubbles/bubbles.js';
+import './memory/memory.js';

@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import "./assets/styles/index.scss";
+import "../assets/styles/index.scss";
 import { Graphics } from "pixi.js";
 import { sound } from "@pixi/sound";
 import { gsap } from "gsap";
