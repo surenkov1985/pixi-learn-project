@@ -1,3 +1,4 @@
+import gsap from "gsap";
 import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
 
@@ -42,6 +43,10 @@ const monster16Texture = Texture.from("./static/images/memory/card16-sheet0.png"
 
 let DEFAULT_CARD_WIDTH = 100;
 let DEFAULT_CARD_HEIGHT = 160;
+let DEFAULT_SCORE = 0;
+
+let score = DEFAULT_SCORE;
+
 let DEFAULT_LEVEL = 1;
 let level = DEFAULT_LEVEL;
 
@@ -99,14 +104,53 @@ const monstersContainer = new Container();
 monstersContainer.x = app.screen.width / 2;
 monstersContainer.y = app.screen.height / 2;
 gameContainer.addChild(monstersContainer);
-
 // Контейнеры для карточек
 const cardsContainer = new Container();
 cardsContainer.x = app.screen.width / 2;
 cardsContainer.y = app.screen.height / 2;
-// cardsContainer.pivot.x = cardsContainer.width / 2;
-// cardsContainer.pivot.y = cardsContainer.height / 2;
 gameContainer.addChild(cardsContainer);
+// контейнер интерфейса
+const UIContainer = new Container();
+gameContainer.addChild(UIContainer);
+// контейнер для таймера
+const timerUIContainer = new Container();
+UIContainer.addChild(timerUIContainer);
+// контейнер для отображения очков в интерфейсе
+const scoreUIContainer = new Container();
+UIContainer.addChild(scoreUIContainer);
+// контейнер для кнопок управления в интефейсе
+const controlsContainer = new Container();
+UIContainer.addChild(controlsContainer);
+
+// ////////////////////////  USER INTEFACE  ////////////////////////////////////////
+
+const textStyle = new TextStyle({
+	fontFamily: "Roboto",
+	fontSize: 28,
+	fontWeight: 600,
+	fill: 0xffffff,
+});
+
+// текст таймера
+const timerUI = new Text("", textStyle)
+timerUI.timeText = "TIME: "
+timerUI.minits = "00"
+timerUI.seconds = "00"
+timerUI.text = timerUI.timeText + timerUI.minits + ":" + timerUI.seconds
+timerUI.anchor.y = 0.5
+timerUI.x = 10
+timerUI.y = 50
+UIContainer.addChild(timerUI)
+
+// текст очков
+const scoreUI = new Text("", textStyle);
+scoreUI.scoreText = "SCORE: ";
+scoreUI.value = score;
+scoreUI.text = scoreUI.scoreText + scoreUI.value;
+scoreUI.anchor.set(0.5);
+scoreUI.x = app.screen.width / 2;
+scoreUI.y = 50;
+UIContainer.addChild(scoreUI);
 
 // /////////////////////// GAMEPLAY ////////////////////////////////////////////////
 
@@ -139,7 +183,7 @@ function createShirtCard(type) {
 	shirtCard.active = false;
 	shirtCard.selected = false;
 	shirtCard.interactive = true;
-	shirtCard.on("pointerdown", clickCardHandler);
+	shirtCard.on("pointerdown", onCardHandler);
 
 	cardsContainer.addChild(shirtCard);
 
@@ -162,6 +206,7 @@ function createdShirtCardAt(x, y, type) {
 	const card = Pool.getShirtCard(type);
 	card.x = x;
 	card.y = y;
+	return card;
 }
 
 function buildCards(level) {
@@ -176,7 +221,7 @@ function buildCards(level) {
 		for (let j = 0; j < cols; j++) {
 			const posX = (j % cols) * (DEFAULT_CARD_WIDTH + 20);
 			const monster = monsters.shift();
-			createdShirtCardAt(posX, posY, monster);
+			const card = createdShirtCardAt(posX, posY, monster);
 		}
 	}
 
@@ -204,6 +249,7 @@ function createMonsterCard(type) {
 	};
 
 	monsterCard.enable = function () {
+		this.alpha = 1;
 		this.active = true;
 		this.visible = true;
 	};
@@ -218,92 +264,64 @@ function createMonsterCardAt(x, y, type) {
 	card.y = y;
 }
 
-function clickCardHandler() {
+function onCardHandler() {
 	if (isSelected) return;
-	this.selected = true;
+	// this.selected = true;
 	isSelected = true;
+
+	const posX = this.x;
+	const posY = this.y;
+	createMonsterCardAt(posX, posY, this.monsterType);
 
 	if (!firstCard) {
 		firstCard = this.monsterType;
 	} else if (!!firstCard && !secondCard) {
 		secondCard = this.monsterType;
 	}
+	gsap.timeline()
+		.to(this, {
+			alpha: 0,
+			duration: 0.5,
+		})
+		.then(() => {
+			isSelected = false;
+			this.disable();
+			if (firstCard && secondCard) {
+				console.log(firstCard === secondCard, monstersContainer.children, cardsContainer.children);
+				for (let i = 0; i < monstersContainer.children.length; i++) {
+					const card = monstersContainer.children[i];
+					card.alpha = 1;
+					if (firstCard === secondCard) {
+						const posX = card.x;
+						const posY = card.y;
+						gsap.to(card, {
+							alpha: 0,
+							duration: 0.5,
+						}).then(() => {
+							card.disable();
+						});
+					} else {
+						// const card = monstersContainer.children[i];
+						const posX = card.x;
+						const posY = card.y;
+						const shirtCard = createdShirtCardAt(posX, posY, card.monsterType);
+						card.disable();
+					}
+				}
+				firstCard = null;
+				secondCard = null;
+				isSelected = false;
+			}
+		});
 
-	console.log(firstCard === secondCard, monstersContainer.children);
-	// if (monstersContainer.children.length === 2) {
-	// 	console.log(monstersContainer.children);
-	// }
-	// if (clickCount > 0) {
-	// 	if (selectedCard && selectedCard.monsterType === this.monsterType) {
-	// 		let posX =
-	// 		selectedCard.disable();
-	// 		this.disable();
-	// 		console.log(true, selectedCard, clickCount);
-	// 	} else {
-	// 		this.texture = shirtCardTexture;
-	// 		selectedCard.texture = shirtCardTexture;
-	// 		console.log(false, selectedCard, clickCount);
-	// 	}
-	// 	selectedCard = null;
-	// 	clickCount = 0;
-	// } else {
-	// 	selectedCard = this;
-	// 	this.texture = this.monsterTexture;
-	// 	clickCount++;
-	// }
+	console.log(Pool.CACHE);
 }
 
 // //////////////////////////////////// ОБНОВЛЕНИЕ ///////////////////////////////
 
-app.ticker.add((delta) => {
-	// if (isSelected) {
-		for (let i = cardsContainer.children.length - 1; i >= 0; i--) {
-			const card = cardsContainer.children[i];
-// console.log(card);
-			if (card && card.selected) {
-				card.alpha -= 0.05 * delta;
+// app.ticker.add((delta) => {
 
-				if (card.alpha <= 0) {
-					isSelected = false;
-					const posX = card.x;
-					const posY = card.y;
-					createMonsterCardAt(posX, posY, card.monsterType);
-					card.disable();
-				}
-			}
-		}
-		if (firstCard && secondCard) {
-			isSelected = false;
-			for (let i = monstersContainer.children.length - 1; i >= 0; i--) {
-				if (firstCard === secondCard) {
-					const card = monstersContainer.children[i];
-					card.alpha -= 0.05 * delta;
-					console.log(firstCard === secondCard, monstersContainer.children.length);
-
-					if (card.alpha <= 0) {
-						const posX = card.x;
-						const posY = card.y;
-						// createMonsterCardAt(posX, posY, card.monsterType);
-						card.disable();
-						// isSelected = false
-						firstCard = null;
-						secondCard = null;
-					}
-				} else {
-					console.log(monstersContainer.children[i]);
-					const card = monstersContainer.children[i];
-					const posX = card.x;
-					const posY = card.y;
-					createdShirtCardAt(posX, posY, card.monsterType);
-					card.disable();
-					firstCard = null;
-					secondCard = null;
-					isSelected = false;
-				}
-			}
-		}
-	// }
-});
+// });
 
 // ////////////////////////////////////  POOL  ///////////////////////////////////
 
