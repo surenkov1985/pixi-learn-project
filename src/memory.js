@@ -1,3 +1,4 @@
+import { sound } from "@pixi/sound";
 import gsap from "gsap";
 import * as PIXI from "pixi.js";
 import "./assets/styles/index.scss";
@@ -17,6 +18,9 @@ document.body.appendChild(app.view);
 globalThis.__PIXI_APP__ = app;
 
 // /////////////////////// АССЕТЫ (картинки, звуки, шрифты) ////////////////////////
+
+sound.add("soundTrack", "./static/audio/memory/soundtrack.ogg");
+// sound.play("soundTrack", { loop: true });
 
 const backgroundTexture = Texture.from("./static/images/memory/background-default-000.jpg");
 const shirtCardTexture = Texture.from("./static/images/memory/card-shirt-sheet0.png");
@@ -38,22 +42,33 @@ const monster13Texture = Texture.from("./static/images/memory/card13-sheet0.png"
 const monster14Texture = Texture.from("./static/images/memory/card14-sheet0.png");
 const monster15Texture = Texture.from("./static/images/memory/card15-sheet0.png");
 const monster16Texture = Texture.from("./static/images/memory/card16-sheet0.png");
+const exitBtnTexture = Texture.from("./static/images/memory/buttonexit-sheet0.png");
+const audioOffBtnTexture = Texture.from("./static/images/memory/buttonaudio-sheet0.png");
+const audioOnBtnTexture = Texture.from("./static/images/memory/buttonaudio-sheet1.png");
+const moreGamesBtnTexture = Texture.from("./static/images/memory/buttonfullscreen-sheet0.png");
 
 // /////////////////////// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ///////////////////////////////////
 
 let DEFAULT_CARD_WIDTH = 100;
 let DEFAULT_CARD_HEIGHT = 160;
+let DEFAULT_BUTTON_WIDTH = 72;
 let DEFAULT_SCORE = 0;
+let DEFAULt_SCALE = 0.5;
 
 let score = DEFAULT_SCORE;
+let scoreIndex = 10;
+let bonusIndex = 1;
+let bonusTime;
 
 let DEFAULT_LEVEL = 1;
 let level = DEFAULT_LEVEL;
+let levelTime;
 
 let clickCount = 0;
 let firstCard = null;
 let secondCard = null;
 let isSelected = false;
+let isPaused = false;
 
 const MONSTER_TYPES = {
 	monster1: { texture: monster1Texture },
@@ -80,14 +95,14 @@ const levelsOptions = {
 		rows: 2,
 		cols: 2,
 		cardScale: 1,
-		DefaultTime: 60,
+		DefaultTime: 20,
 	},
 	2: {
 		monstersNumber: 4,
 		rows: 2,
 		cols: 4,
 		cardScale: 1,
-		DefaultTime: 60,
+		DefaultTime: 40,
 	},
 };
 
@@ -121,6 +136,9 @@ UIContainer.addChild(scoreUIContainer);
 // контейнер для кнопок управления в интефейсе
 const controlsContainer = new Container();
 UIContainer.addChild(controlsContainer);
+// контейнер для паузы
+const pauseContainer = new Container();
+gameContainer.addChild(pauseContainer);
 
 // ////////////////////////  USER INTEFACE  ////////////////////////////////////////
 
@@ -132,15 +150,58 @@ const textStyle = new TextStyle({
 });
 
 // текст таймера
-const timerUI = new Text("", textStyle)
-timerUI.timeText = "TIME: "
-timerUI.minits = "00"
-timerUI.seconds = "00"
-timerUI.text = timerUI.timeText + timerUI.minits + ":" + timerUI.seconds
-timerUI.anchor.y = 0.5
-timerUI.x = 10
-timerUI.y = 50
-UIContainer.addChild(timerUI)
+const timerUI = new Text("", textStyle);
+timerUI.timeText = "TIME: ";
+timerUI.minutes = "00";
+timerUI.seconds = "00";
+timerUI.text = timerUI.timeText + timerUI.minutes + ":" + timerUI.seconds;
+timerUI.anchor.y = 0.5;
+timerUI.x = 10;
+timerUI.y = 50;
+UIContainer.addChild(timerUI);
+
+// текст таймера бонусного времени
+const bonusTimeText = new Text("", textStyle);
+bonusTimeText.timeText = "Bonus Timer: ";
+bonusTimeText.minutes = "";
+bonusTimeText.seconds = "";
+bonusTimeText.DefaultTime = 4;
+bonusTimeText.time = bonusTimeText.DefaultTime;
+bonusTimeText.text = bonusTimeText.timeText + bonusTimeText.minutes + ":" + bonusTimeText.seconds;
+bonusTimeText.anchor.y = 0.5;
+bonusTimeText.visible = false;
+bonusTimeText.x = 10;
+bonusTimeText.y = app.screen.height - 40;
+UIContainer.addChild(bonusTimeText);
+
+function updateTimer(time, elem) {
+	const timeData = {
+		minutes: 0,
+		seconds: 0,
+	};
+
+	timeData.minutes = Math.floor(time / 60)
+		.toString()
+		.padStart(2, "0");
+	timeData.seconds = (time % 60).toString().padStart(2, "0");
+
+	elem.text = elem.timeText + timeData.minutes + ":" + timeData.seconds;
+}
+
+function startTimer(time, elem) {
+	if (time < 0) return timer;
+	if (isPaused) return timer;
+	let timer = time;
+
+	updateTimer(timer, elem);
+	timer -= 1;
+
+	setTimeout(() => {
+		startTimer(timer , elem);
+	}, 1000);
+}
+
+levelTime = startTimer(20, timerUI);
 
 // текст очков
 const scoreUI = new Text("", textStyle);
@@ -151,6 +212,74 @@ scoreUI.anchor.set(0.5);
 scoreUI.x = app.screen.width / 2;
 scoreUI.y = 50;
 UIContainer.addChild(scoreUI);
+
+function updateScore() {
+	scoreUI.text = scoreUI.scoreText + score;
+}
+
+// кнопка exit
+const exitBtn = new Sprite(exitBtnTexture);
+exitBtn.initScale = DEFAULt_SCALE;
+exitBtn.scale.set(exitBtn.initScale);
+exitBtn.anchor.set(0.5);
+exitBtn.interactive = true;
+exitBtn.cursor = "pointer";
+exitBtn.on("pointerdown", handlerExitGameBtn);
+exitBtn.x = app.screen.width - 50;
+exitBtn.y = 50;
+UIContainer.addChild(exitBtn);
+
+function handlerExitGameBtn() {
+	buttonAnimation(this);
+	isPaused = true;
+	console.log("paused");
+}
+
+// кнопка отключения звука
+const offAudioBtn = new Sprite(audioOffBtnTexture);
+offAudioBtn.initScale = DEFAULt_SCALE;
+offAudioBtn.scale.set(offAudioBtn.initScale);
+offAudioBtn.anchor.set(0.5);
+offAudioBtn.interactive = true;
+offAudioBtn.cursor = "pointer";
+offAudioBtn.on("pointerdown", handlerMuteToggle);
+offAudioBtn.x = exitBtn.x - DEFAULT_BUTTON_WIDTH - 10;
+offAudioBtn.y = 50;
+UIContainer.addChild(offAudioBtn);
+
+function handlerMuteToggle() {
+	sound.toggleMuteAll();
+	buttonAnimation(this, () => {
+		offAudioBtn.texture = offAudioBtn.texture === audioOffBtnTexture ? audioOnBtnTexture : audioOffBtnTexture;
+	});
+}
+
+// кнопка more game
+const moreGamesBtn = new Sprite(moreGamesBtnTexture);
+moreGamesBtn.initScale = DEFAULt_SCALE;
+moreGamesBtn.scale.set(moreGamesBtn.initScale);
+moreGamesBtn.anchor.set(0.5);
+moreGamesBtn.interactive = true;
+moreGamesBtn.cursor = "pointer";
+moreGamesBtn.x = app.screen.width - 50;
+moreGamesBtn.y = app.screen.height - 50;
+UIContainer.addChild(moreGamesBtn);
+moreGamesBtn.on("pointerdown", handlerMoreGamesBtn);
+
+function handlerMoreGamesBtn() {
+	buttonAnimation(this, () => {
+		window.open("http://localhost:3001");
+	});
+}
+
+function buttonAnimation(elem, callback) {
+	gsap.timeline()
+		.to(elem.scale, { x: elem.initScale * 0.9, y: elem.initScale * 0.9, duration: 0.1 })
+		.to(elem.scale, { x: elem.initScale, y: elem.initScale, duration: 0.1 })
+		.then(() => {
+			if (callback) callback();
+		});
+}
 
 // /////////////////////// GAMEPLAY ////////////////////////////////////////////////
 
@@ -262,16 +391,19 @@ function createMonsterCardAt(x, y, type) {
 
 	card.x = x;
 	card.y = y;
+
+	return card;
 }
 
 function onCardHandler() {
 	if (isSelected) return;
-	// this.selected = true;
 	isSelected = true;
 
 	const posX = this.x;
 	const posY = this.y;
-	createMonsterCardAt(posX, posY, this.monsterType);
+	console.log(this.monsterType);
+	const monsterCard = createMonsterCardAt(posX, posY, this.monsterType);
+	console.log(monsterCard);
 
 	if (!firstCard) {
 		firstCard = this.monsterType;
@@ -287,34 +419,42 @@ function onCardHandler() {
 			isSelected = false;
 			this.disable();
 			if (firstCard && secondCard) {
-				console.log(firstCard === secondCard, monstersContainer.children, cardsContainer.children);
-				for (let i = 0; i < monstersContainer.children.length; i++) {
-					const card = monstersContainer.children[i];
-					card.alpha = 1;
-					if (firstCard === secondCard) {
-						const posX = card.x;
-						const posY = card.y;
-						gsap.to(card, {
-							alpha: 0,
-							duration: 0.5,
-						}).then(() => {
-							card.disable();
-						});
-					} else {
-						// const card = monstersContainer.children[i];
-						const posX = card.x;
-						const posY = card.y;
-						const shirtCard = createdShirtCardAt(posX, posY, card.monsterType);
-						card.disable();
-					}
-				}
+				checkCards(firstCard, secondCard);
 				firstCard = null;
 				secondCard = null;
 				isSelected = false;
 			}
 		});
+}
 
-	console.log(Pool.CACHE);
+function checkCards(firstCard, secondCard) {
+	if (firstCard === secondCard) {
+		score += scoreIndex * bonusIndex;
+		updateScore();
+		for (let i = 0; i < monstersContainer.children.length; i++) {
+			const card = monstersContainer.children[i];
+			card.alpha = 1;
+			const posX = card.x;
+			const posY = card.y;
+
+			gsap.to(card, {
+				alpha: 0,
+				duration: 0.5,
+			}).then(() => {
+				card.disable();
+			});
+		}
+	} else {
+		for (let i = 0; i < monstersContainer.children.length; i++) {
+			const card = monstersContainer.children[i];
+			card.alpha = 1;
+			const posX = card.x;
+			const posY = card.y;
+
+			const shirtCard = createdShirtCardAt(posX, posY, card.monsterType);
+			card.disable();
+		}
+	}
 }
 
 // //////////////////////////////////// ОБНОВЛЕНИЕ ///////////////////////////////

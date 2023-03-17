@@ -104,7 +104,7 @@ const dev = {
 		},
 		open: true,
 		port: 3001,
-		host: "local-ip",
+		host: "localhost",
 		compress: false,
 		hot: true,
 		liveReload: true,
